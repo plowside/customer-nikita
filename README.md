@@ -1,2 +1,2 @@
-# client-nikita
+# customer-nikita
 Скрипты для заказчика: Никита (друг Влада)
