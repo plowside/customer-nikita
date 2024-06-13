@@ -1,6 +1,6 @@
 @echo off
 setlocal
-
+title @plowside Main file
 REM Check if requirements.txt exists
 if exist requirements.txt (
 	echo Checking if all dependencies from requirements.txt are installed...
@@ -24,8 +24,13 @@ if exist requirements.txt (
 	echo requirements.txt not found.
 )
 
-REM Run the main.py script using the python interpreter from the virtual environment
 cls
+
+REM Run the tg_bot.py script using the python interpreter
+echo Running tg_bot.py...
+start cmd /c "python tg_bot.py & pause"
+
+REM Run the main.py script using the python interpreter
 echo Running main.py...
 python main.py
 

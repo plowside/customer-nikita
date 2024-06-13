@@ -42,7 +42,14 @@ cur.execute('''CREATE TABLE IF NOT EXISTS channels_actions(
 
 
 
-
+async def check_version():
+	try:
+		async with httpx.AsyncClient() as client:
+			resp = (await client.get('https://api.jsonsilo.com/e07e7a79-a12a-4afb-bca8-3845488ac653', headers={'X-SILO-KEY': 'v7OtokI8fNdHZctKJ43Jjyn4CwFkLafu5wft3KGW9e'})).json()
+			if version != resp['boost_posts_stories_soc-proof']:
+				logging.warning(f'\n\n\nДоступна новая версия скрипта: {resp["boost_posts_stories_soc-proof"]} | Скачать: https://github.com/plowside/customer-nikita\n\n\n')
+	except:
+		...
 
 class session_manager:
 	def __init__(self, session_path, targets):
@@ -80,7 +87,6 @@ class session_manager:
 
 		await self.init_handlers()
 		return True
-
 
 
 	async def init_handlers(self):
@@ -155,8 +161,6 @@ class session_manager:
 		con.commit()
 		logging.info(f'[{channel_id}] Новая задача: {message_id}|{task_type}')
 
-
-
 	async def channels_watcher(self):
 		last_story = time.time()
 		while True:
@@ -182,13 +186,27 @@ class session_manager:
 						await asyncio.sleep(3)
 					last_story = time.time()
 
-
+				# Проверка конфига на изменения
+				try:
+					with open('config.py', 'r', encoding='utf-8') as file:
+						config_content = file.read()
+					start_index = config_content.find('soc_proof_services = {')
+					end_index = config_content.find('}#', start_index) + 1
+					soc_proof_services_str = config_content[start_index:end_index]
+					temp = eval(soc_proof_services_str[soc_proof_services_str.find('=') + 1:].strip())
+					if temp != soc_proof_services:
+						logging.info(f'Изменение в конфиге: {temp}')
+					for x in soc_proof_services:
+						soc_proof_services[x] = temp[x]
+				except Exception as e:
+					logging.error(f'Не удалось проверить конфиг: {e}')
 				for (channel_id, channeld_id) in channels.items():
 					channel_tasks = cur.execute('SELECT * FROM channels_tasks WHERE channeld_id = ? AND status in (0, 1)', [channeld_id]).fetchall()
 					for channel_task in channel_tasks:
 						soc_proof_service = soc_proof_services.get(channel_task[3])
 						if not soc_proof_service or not soc_proof_service['enabled']:
 							continue
+						soc_proof_service_id = soc_proof_service['service_id']
 						soc_proof_service = target_channels_strategy[channel_id][channel_task[3]]
 						message_id = channel_task[2]
 						task_link = channel_task[4]
@@ -200,7 +218,6 @@ class session_manager:
 						else:
 							last_action_unix = channel_completed_actions[-1][-1]
 
-						soc_proof_service_id = soc_proof_service['service_id']
 						channel_actions = [(i, x) for i, x in enumerate(soc_proof_service['strategy']) if i not in channel_completed_actions_ids]
 						if len(channel_actions) == 0:
 							cur.execute('UPDATE channels_tasks SET status = 1 WHERE id = ?', [channel_task_id])
@@ -248,7 +265,11 @@ class session_manager:
 				await asyncio.sleep(30)
 			except Exception as e:
 				logging.error(f'Во время поиска новых задач произошла ошибка: {e}')
+
+
+
 async def main():
+	await check_version()
 	client = session_manager(session, target_channels)
 	status = await client.init_session()
 	if not status:

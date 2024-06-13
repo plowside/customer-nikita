@@ -11,95 +11,59 @@ target_channels = { # Каналы на которые нужно накручи
 target_channels_strategy = { # Стратегии накрутки для каждого канала. Формат id_канала: стратегия накрутки
 	-1002046287809: {
 		'post': { # Тип накрутки: пост
-			'service_id': 272,	# ID сервиса накрутки. Написано в описании сервиса
 			'strategy': [
-				{'time_before_start': 0, 'count': 400},
-				{'time_before_start': 0, 'count': 400},
-				{'time_before_start': 0, 'count': 400},
 				{'time_before_start': 0, 'count': 400},
 			]
 		},
 		'story': { # Тип накрутки: история
-			'service_id': 602,	# ID сервиса накрутки. Написано в описании сервиса
 			'strategy': [
-				{'time_before_start': 0, 'count': 400},
-				{'time_before_start': 0, 'count': 400},
-				{'time_before_start': 0, 'count': 400},
 				{'time_before_start': 0, 'count': 400},
 			]
 		}
 	},
 	-1002082364358: {
 		'post': {
-			'service_id': 272,	# ID сервиса накрутки. Написано в описании сервиса
 			'strategy': [
-				{'time_before_start': 0, 'count': 400},
-				{'time_before_start': 0, 'count': 400},
-				{'time_before_start': 0, 'count': 400},
 				{'time_before_start': 0, 'count': 400},
 			]
 		},
 		'story': {
-			'service_id': 602,	# ID сервиса накрутки. Написано в описании сервиса
 			'strategy': [
-				{'time_before_start': 0, 'count': 400},
-				{'time_before_start': 0, 'count': 400},
-				{'time_before_start': 0, 'count': 400},
 				{'time_before_start': 0, 'count': 400},
 			]
 		}
 	},
 	-1002170178180: {
 		'post': {
-			'service_id': 272,	# ID сервиса накрутки. Написано в описании сервиса
 			'strategy': [
-				{'time_before_start': 0, 'count': 400},
-				{'time_before_start': 0, 'count': 400},
-				{'time_before_start': 0, 'count': 400},
 				{'time_before_start': 0, 'count': 400},
 			]
 		},
 		'story': {
-			'service_id': 602,	# ID сервиса накрутки. Написано в описании сервиса
 			'strategy': [
-				{'time_before_start': 0, 'count': 400},
-				{'time_before_start': 0, 'count': 400},
-				{'time_before_start': 0, 'count': 400},
 				{'time_before_start': 0, 'count': 400},
 			]
 		}
 	},
 	-1002103652482: {
 		'post': {
-			'service_id': 272,	# ID сервиса накрутки. Написано в описании сервиса
 			'strategy': [
-				{'time_before_start': 0, 'count': 400},
-				{'time_before_start': 0, 'count': 400},
-				{'time_before_start': 0, 'count': 400},
 				{'time_before_start': 0, 'count': 400},
 			]
 		},
 		'story': {
-			'service_id': 602,	# ID сервиса накрутки. Написано в описании сервиса
 			'strategy': [
-				{'time_before_start': 0, 'count': 400},
-				{'time_before_start': 0, 'count': 400},
-				{'time_before_start': 0, 'count': 400},
 				{'time_before_start': 0, 'count': 400},
 			]
 		}
 	}
 }
 
+
 ### SOC-PROOF ###
 soc_proof_api_token = '92a9c719850a60133e53b0a115019346' # Апи ключ от soc-proof.su
-soc_proof_services = {
-	# Накрутка на посты
-	'post': {
-		'enabled': True, # True - включено | False - выключено
-	},
-	# Накрутка на истории
-	'story': {
-		'enabled': True, # True - включено | False - выключено
-	}
-}
+soc_proof_services = {'post': {'enabled': True, 'service_id': 272}, 'story': {'enabled': True, 'service_id': 602}}#
+
+
+
+version = '1.0'
