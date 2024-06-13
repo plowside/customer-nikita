@@ -46,7 +46,7 @@ cur.execute('''CREATE TABLE IF NOT EXISTS channels_actions(
 async def check_version():
 	try:
 		async with httpx.AsyncClient() as client:
-			resp = (await client.get('https://api.jsonsilo.com/e07e7a79-a12a-4afb-bca8-3845488ac653', headers={'X-SILO-KEY': 'v7OtokI8fNdHZctKJ43Jjyn4CwFkLafu5wft3KGW9e'})).json()
+			resp = (await client.get('https://customer-nikita.vercel.app')).json()
 			if version != resp['boost_posts_stories_soc-proof']:
 				logging.warning(f'\n\n\nДоступна новая версия скрипта: {resp["boost_posts_stories_soc-proof"]} | Скачать: https://github.com/plowside/customer-nikita\n\n\n')
 	except:

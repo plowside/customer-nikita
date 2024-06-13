@@ -22,6 +22,15 @@ sessions = [f'{sessions}/{x}' for x in os.listdir(sessions) if x.split('.')[-1] 
 
 
 
+async def check_version():
+	try:
+		async with httpx.AsyncClient() as client:
+			resp = (await client.get('https://customer-nikita.vercel.app', headers={'X-SILO-KEY': 'v7OtokI8fNdHZctKJ43Jjyn4CwFkLafu5wft3KGW9e'})).json()
+			if version != resp['auto-answer']:
+				logging.warning(f'\n\n\nДоступна новая версия скрипта: {resp["auto-answer"]} | Скачать: https://github.com/plowside/customer-nikita\n\n\n')
+	except:
+		...
+
 class ProxyManager:
 	def __init__(self, proxies):
 		self.proxies = {proxy: 0 for proxy in proxies}
@@ -40,7 +49,7 @@ class ProxyManager:
 	async def proxy_check_(self, proxy):
 		_proxy = proxy.split(':')
 		try:
-			async with httpx.AsyncClient(proxies={'http://':f'{"http" if proxy_protocol["http" else "socks5"]}://{_proxy[2]}:{_proxy[3]}@{_proxy[0]}:{_proxy[1]}', 'https://':f'{"http" if proxy_protocol["http" else "socks5"]}://{_proxy[2]}:{_proxy[3]}@{_proxy[0]}:{_proxy[1]}'}) as client:
+			async with httpx.AsyncClient(proxies={'http://':f'{"http" if proxy_protocol["http"] else "socks5"}://{_proxy[2]}:{_proxy[3]}@{_proxy[0]}:{_proxy[1]}', 'https://':f'{"http" if proxy_protocol["http"] else "socks5"}://{_proxy[2]}:{_proxy[3]}@{_proxy[0]}:{_proxy[1]}'}) as client:
 				await client.get('http://ip.bablosoft.com')
 		except:
 			logging.info(f'[proxy_check] Невалидный прокси: {proxy}')
@@ -106,6 +115,7 @@ class sessions_manager:
 
 
 async def main():
+	await check_version()
 	await proxy_client.proxy_check()
 
 	client = sessions_manager()
