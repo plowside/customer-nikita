@@ -26,9 +26,6 @@ if exist requirements.txt (
 
 cls
 
-REM Run the tg_bot.py script using the python interpreter
-echo Running tg_bot.py...
-start cmd /c "python tg_bot.py & pause"
 
 REM Run the main.py script using the python interpreter
 echo Running main.py...

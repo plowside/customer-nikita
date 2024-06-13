@@ -79,6 +79,7 @@ async def states_change_service_id(message: Message, state: FSMContext):
 	with open('config.py', 'w', encoding='utf-8') as file:
 		file.write(new_config_content)
 
+	_soc_proof_services[boost_target]['service_id'] = new_service_id
 	await message.answer(f'<b>✅ Новый ID сервиса накрутки для <code>{texts[boost_target]}</code>:  <code>{new_service_id}</code></b>', reply_markup=ikb_construct([ikb('❌ Закрыть', data='utils:close')]))
 	await state.clear()
 
@@ -89,7 +90,9 @@ async def handler_text(message: Message, state: FSMContext):
 
 
 #################################################################################################################################
-async def main() -> None:
+async def main(temp) -> None:
+	global _soc_proof_services
+	_soc_proof_services = temp
 	bot = Bot(token=bot_token, default=DefaultBotProperties(parse_mode=ParseMode.HTML))
 	dp = Dispatcher()
 	dp.include_router(main_router)
@@ -97,5 +100,5 @@ async def main() -> None:
 
 
 if __name__ == "__main__":
-	logging.basicConfig(format=u'%(filename)s [LINE:%(lineno)d] #%(levelname)-8s [%(asctime)s]  %(message)s', level=logging.INFO, stream=sys.stdout)
+	logging.basicConfig(format=u'%(filename)s [LINE:%(lineno)d] #%(levelname)-8s [%(asctime)s]  %(message)s', level=logging.ERROR, stream=sys.stdout)
 	asyncio.run(main())

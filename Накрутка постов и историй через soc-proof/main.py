@@ -8,11 +8,12 @@ from telethon.tl.functions.account import UpdateProfileRequest
 from telethon.errors import rpcerrorlist
 
 from config import *
-
+from tg_bot import main as tg_bot_func
 ##############################################################################
 logging.basicConfig(format=u'%(filename)s [LINE:%(lineno)d] #%(levelname)-8s [%(asctime)s]  %(message)s', level=logging.INFO)
 logging.getLogger('telethon').setLevel(logging.WARNING)
 logging.getLogger('httpx').setLevel(logging.WARNING)
+logging.getLogger('aiogram').setLevel(logging.WARNING)
 ##############################################################################
 con = sqlite3.connect('db.db')
 cur = con.cursor()
@@ -186,20 +187,7 @@ class session_manager:
 						await asyncio.sleep(3)
 					last_story = time.time()
 
-				# Проверка конфига на изменения
-				try:
-					with open('config.py', 'r', encoding='utf-8') as file:
-						config_content = file.read()
-					start_index = config_content.find('soc_proof_services = {')
-					end_index = config_content.find('}#', start_index) + 1
-					soc_proof_services_str = config_content[start_index:end_index]
-					temp = eval(soc_proof_services_str[soc_proof_services_str.find('=') + 1:].strip())
-					if temp != soc_proof_services:
-						logging.info(f'Изменение в конфиге: {temp}')
-					for x in soc_proof_services:
-						soc_proof_services[x] = temp[x]
-				except Exception as e:
-					logging.error(f'Не удалось проверить конфиг: {e}')
+
 				for (channel_id, channeld_id) in channels.items():
 					channel_tasks = cur.execute('SELECT * FROM channels_tasks WHERE channeld_id = ? AND status in (0, 1)', [channeld_id]).fetchall()
 					for channel_task in channel_tasks:
@@ -258,18 +246,17 @@ class session_manager:
 							cur.execute('UPDATE channels_tasks SET status = 1 WHERE id = ?', [channel_task_id])
 							logging.info(f'[{channel_id}|{message_id}|{channel_action_id}] Накрутка завершена')
 					con.commit()
-				await asyncio.sleep(10)
-
 			except rpcerrorlist.FloodWaitError:
 				logging.error(f'Во время поиска новых задач произошла ошибка: {e}')
 				await asyncio.sleep(30)
 			except Exception as e:
 				logging.error(f'Во время поиска новых задач произошла ошибка: {e}')
-
+			await asyncio.sleep(10)
 
 
 async def main():
 	await check_version()
+	future = asyncio.create_task(tg_bot_func(soc_proof_services))
 	client = session_manager(session, target_channels)
 	status = await client.init_session()
 	if not status:
