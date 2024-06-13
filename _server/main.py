@@ -6,9 +6,7 @@ app = FastAPI()
 
 @app.get("/")
 async def read_versions():
-	try:
-		with open('versions.json', 'r') as f:
-			data = json.load(f)
-		return JSONResponse(content=data)
-	except FileNotFoundError:
-		return JSONResponse(content={"error": "File not found"})
+	return {
+		'boost_posts_stories_soc-proof': '1.0',
+		'multi-autojoin': '1.0'
+	}
