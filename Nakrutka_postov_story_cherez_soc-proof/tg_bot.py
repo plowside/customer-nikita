@@ -40,6 +40,7 @@ class states(StatesGroup):
 #################################################################################################################################
 @main_router.callback_query(F.data.startswith('utils'), StateFilter('*'))
 async def handler_utils(call: CallbackQuery, state: FSMContext):
+	if message.from_user.id not in admin_ids: return
 	await state.clear()
 	cd = call.data.split(':')
 
@@ -55,6 +56,7 @@ async def handler_utils(call: CallbackQuery, state: FSMContext):
 
 @main_router.message(StateFilter(states.change_service_id), F.text)
 async def states_change_service_id(message: Message, state: FSMContext):
+	if message.from_user.id not in admin_ids: return
 	mt = message.text
 	state_data = await state.get_data()
 	boost_target = state_data['boost_target']
@@ -85,6 +87,7 @@ async def states_change_service_id(message: Message, state: FSMContext):
 
 @main_router.message(F.text)
 async def handler_text(message: Message, state: FSMContext):
+	if message.from_user.id not in admin_ids: return
 	mt = message.text
 	await message.answer(f'<b>⚙️ Выберите объект накрутки</b>', reply_markup=ikb_construct([ikb('📰 Пост', data='utils:change_service_id:post'), ikb('🖼 История', data='utils:change_service_id:story')]))
 

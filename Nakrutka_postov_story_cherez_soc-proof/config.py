@@ -1,5 +1,6 @@
 ### GENERAL ###
 bot_token = '6511242030:AAH0IxAhjb1lguWBjHeMHl2SikkEIUgq8vs' # Токен тг бота для лога. Брать у @botfather
+admin_ids = [] # ID админов, которым будет отвечать бот
 log_chat_id = -4229870813 # ID чата в который отсылать лог
 session = 'data/main_session.session' # Путь до сессии
 target_channels = { # Каналы на которые нужно накручивать. Формат: ID_канала: 'ссылка на канал'
