@@ -1,5 +1,5 @@
 # -*- coding: UTF-8 -*-
-import telethon, logging, asyncio, random, httpx, time, os
+import telethon, logging, asyncio, random, httpx, socks, time, os
 
 from telethon import TelegramClient, functions, events, types
 from telethon.tl.functions.messages import GetHistoryRequest, ImportChatInviteRequest, CheckChatInviteRequest, GetPeerDialogsRequest
@@ -40,7 +40,7 @@ class ProxyManager:
 	async def proxy_check_(self, proxy):
 		_proxy = proxy.split(':')
 		try:
-			async with httpx.AsyncClient(proxies={'http://':f'http://{_proxy[2]}:{_proxy[3]}@{_proxy[0]}:{_proxy[1]}', 'https://':f'http://{_proxy[2]}:{_proxy[3]}@{_proxy[0]}:{_proxy[1]}'}) as client:
+			async with httpx.AsyncClient(proxies={'http://':f'{"http" if proxy_protocol["http" else "socks5"]}://{_proxy[2]}:{_proxy[3]}@{_proxy[0]}:{_proxy[1]}', 'https://':f'{"http" if proxy_protocol["http" else "socks5"]}://{_proxy[2]}:{_proxy[3]}@{_proxy[0]}:{_proxy[1]}'}) as client:
 				await client.get('http://ip.bablosoft.com')
 		except:
 			logging.info(f'[proxy_check] Невалидный прокси: {proxy}')
@@ -59,7 +59,7 @@ class sessions_manager:
 
 	async def init_session(self, session):
 		proxy = proxy_client.get_proxy()
-		client = TelegramClient(session, 69696969, 'qwertyuiopasdfghjklzxcvbnm1234567', flood_sleep_threshold=120, device_model="Samsung Galaxy S21", system_version="10.16.3", app_version="10.13.4", lang_code="en", system_lang_code="en-US", proxy=(socks.HTTP if config.proxy_protocol['http'] else socks.SOCKS5, proxy[0], int(proxy[1]), True, proxy[2], proxy[3]) if proxy else None)
+		client = TelegramClient(session, 69696969, 'qwertyuiopasdfghjklzxcvbnm1234567', flood_sleep_threshold=120, device_model="Samsung Galaxy S21", system_version="10.16.3", app_version="10.13.4", lang_code="en", system_lang_code="en-US", proxy=(socks.HTTP if proxy_protocol['http'] else socks.SOCKS5, proxy[0], int(proxy[1]), True, proxy[2], proxy[3]) if proxy else None)
 		try: await client.connect()
 		except ConnectionError:	
 			await client.disconnect()

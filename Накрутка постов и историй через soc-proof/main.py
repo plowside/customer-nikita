@@ -53,7 +53,7 @@ class session_manager:
 
 	# Подключение к сессии
 	async def init_session(self):
-		self.client = TelegramClient(self.session_path, 69696969, 'qwertyuiopasdfghjklzxcvbnm1234567', device_model = "iPhone 13 Pro Max", system_version = "14.8.1", app_version = "10.6", lang_code = "en", system_lang_code = "en-US")
+		self.client = TelegramClient(self.session_path, 69696969, 'qwertyuiopasdfghjklzxcvbnm1234567', flood_sleep_threshold=120, device_model = "iPhone 13 Pro Max", system_version = "14.8.1", app_version = "10.6", lang_code = "en", system_lang_code = "en-US")
 		
 		try: await self.client.connect()
 		except ConnectionError:	
@@ -162,7 +162,7 @@ class session_manager:
 		while True:
 			try:
 				channels = dict(self.channels)
-				if time.time() - last_story > 600:
+				if time.time() - last_story > 300:
 					for (channel_id, channeld_id) in channels.items():
 						db_stories = [x[2] for x in cur.execute('SELECT * FROM channels_tasks WHERE channeld_id = ? AND task_type = ?', [channeld_id, 'story']).fetchall()]
 						for story in (await self.client(functions.stories.GetPeerStoriesRequest(peer=channel_id))).stories.stories:
@@ -179,7 +179,7 @@ class session_manager:
 							cur.execute('INSERT INTO channels_tasks(channeld_id, message_id, task_type, task_link) VALUES(?, ?, ?, ?)', [channeld_id, story.id, 'story', story_link])
 							con.commit()
 							logging.info(f'[{channel_id}] Новая задача: {story.id}|story')
-						await asyncio.sleep(10)
+						await asyncio.sleep(3)
 					last_story = time.time()
 
 
