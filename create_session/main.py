@@ -1,4 +1,4 @@
-import subprocess, threading, requests, asyncio, zipfile, shutil, json, os, re
+import time, subprocess, threading, requests, asyncio, zipfile, shutil, json, os, re
 
 from telethon.sync import TelegramClient
 from telethon import types
@@ -11,7 +11,17 @@ os.makedirs('temp', exist_ok=True)
 os.makedirs('archives', exist_ok=True)
 
 
-
+if not os.path.exists('Telegram_desktop/Telegram.exe'):
+	print('Скачиваю клиент телеграма')
+	resp = requests.get('https://telegram.org/dl/desktop/win64_portable')
+	with open('temp/telegram_client.zip', 'wb') as file:
+		file.write(resp.content)
+	with zipfile.ZipFile('temp/telegram_client.zip', 'r') as zip_ref:
+		zip_ref.extractall('temp/telegram_client')
+	os.rename('temp/telegram_client/Telegram', 'Telegram_desktop')
+	os.remove('temp/telegram_client.zip')
+	shutil.rmtree('temp/telegram_client')
+	print('Клиент телеграма успешно скачан')
 
 
 def create_app(phone, stel_token = None):
@@ -95,33 +105,30 @@ for tdata in tdatas:
 		print(f'[{tdata}] Не удалось найти файл с информацией о тдате')
 		continue
 	print(f'[{tdata}] Обрабатываю тдату')
-	try:
-		shutil.rmtree('Telegram_desktop/tdata')
-	except:pass
+	if os.path.exists('Telegram_desktop/tdata'):
+		try: shutil.rmtree('Telegram_desktop/tdata')
+		except Exception as e: print(f'Не удалось удалить текущую тдату в клиенте телеграма: {e}')
 	os.rename(f'temp/{tdata}/tdata', 'Telegram_desktop/tdata')
 	thread = threading.Thread(target=run_telegram)
 	thread.start()
 	tdata_info = json.load(open(f'temp/{tdata}/{tdata_info_file[0]}', 'r', encoding='utf-8'))
-	if tdata_info['phone'] == '261322461842':
-		stel_token = 'eef7dcbc9d552dfe889aac7f3a53fa65eef7dcb0eef79d82389a4340029bc785515bf'
-	elif tdata_info['phone'] == '261322552192':
-		stel_token = 'd977ae75923e1b22bf1adf260dd388acd977ae79d977eefa3fb6daf1df8b7fb90dc61'
-	else:
-		stel_token = None
-	status, (api_id, api_hash) = create_app(tdata_info['phone'], stel_token)
-	if not status:
-		continue
-	client = TelegramClient('temp/temp_session', api_id, api_hash, system_lang_code='en', system_version='4.16.30-vxCUSTOM')
-	client.start(phone=tdata_info['phone'], password=open(f'temp/{tdata}/2fa.txt', 'r', encoding='utf-8').read().splitlines()[0] if '2fa.txt' in tdata_files else None)
-	me = client.get_me()
-	client.session.save()
-	client.disconnect()
+	status, (api_id, api_hash) = create_app(tdata_info['phone'])
+	if status:
+		client = TelegramClient('temp/temp_session', api_id, api_hash, system_lang_code='en', system_version='4.16.30-vxCUSTOM')
+		client.start(phone=tdata_info['phone'], password=open(f'temp/{tdata}/2fa.txt', 'r', encoding='utf-8').read().splitlines()[0] if '2fa.txt' in tdata_files else None)
+		me = client.get_me()
+		client.session.save()
+		client.disconnect()
+		try:
+			os.rename('temp/temp_session.session', f'sessions/{me.id}.session')
+		except:
+			os.remove(f'sessions/{me.id}.session')
+			os.rename('temp/temp_session.session', f'sessions/{me.id}.session')
+		print(f'Сессия успешно создана\nФайл: {me.id}.session')
+		os.remove(f'archives/{tdata}')
 	try:
-		os.rename('temp/temp_session.session', f'sessions/{me.id}.session')
-	except:
-		os.remove(f'sessions/{me.id}.session')
-		os.rename('temp/temp_session.session', f'sessions/{me.id}.session')
-	telegram_process.terminate()
-	telegram_process.wait()
-	print(f'Сессия успешно создана\nФайл: {me.id}.session\n\n')
-	os.remove(f'archives/{tdata}')
+		telegram_process.terminate()
+		telegram_process.wait()
+	except Exception as e: print(e)
+	time.sleep(.5)
+	print('\n')
