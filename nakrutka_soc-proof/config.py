@@ -1,7 +1,7 @@
 ### GENERAL ###
-bot_token = '6511242030:AAH0IxAhjb1lguWBjHeMHl2SikkEIUgq8vs' # Токен тг бота для лога. Брать у @botfather
-admin_ids = [] # ID админов, которым будет отвечать бот
-log_chat_id = -4229870813 # ID чата в который отсылать лог
+bot_token = '7306244866:AAEMdvdTKMz3GemnnB39xXMG9UtQdaq7Ghk' # Токен тг бота для лога. Брать у @botfather
+admin_ids = [6315225351] # ID админов, которым будет отвечать бот
+log_chat_id = 6315225351 # ID чата в который отсылать лог
 proxies = 'data/proxy.txt' # Путь до прокси
 proxy_protocol = {'http': True, 'socks5': False} # Протокол прокси
 session = 'data/main_session.session' # Путь до сессии
@@ -66,7 +66,3 @@ target_channels_strategy = { # Стратегии накрутки для каж
 ### SOC-PROOF ###
 soc_proof_api_token = '92a9c719850a60133e53b0a115019346' # Апи ключ от soc-proof.su
 soc_proof_services = {'post': {'enabled': True, 'service_id': 272}, 'story': {'enabled': True, 'service_id': 602}}#
-
-
-
-version = '1.0'

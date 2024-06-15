@@ -16,6 +16,8 @@ logging.basicConfig(format=u'%(filename)s [LINE:%(lineno)d] #%(levelname)-8s [%(
 logging.getLogger('telethon').setLevel(logging.WARNING)
 logging.getLogger('httpx').setLevel(logging.WARNING)
 logging.getLogger('aiogram').setLevel(logging.WARNING)
+
+version = 1.1
 ##############################################################################
 con = sqlite3.connect('db.db')
 cur = con.cursor()
@@ -49,8 +51,8 @@ async def check_version():
 	try:
 		async with httpx.AsyncClient() as client:
 			resp = (await client.get('https://customer-nikita.vercel.app')).json()
-			if version != resp['boost_posts_stories_soc-proof']:
-				logging.warning(f'\n\n\nДоступна новая версия скрипта: {resp["boost_posts_stories_soc-proof"]} | Скачать: https://github.com/plowside/customer-nikita\n\n\n')
+			if version != resp['nakrutka_soc-proof']:
+				logging.warning(f'\n\n\nДоступна новая версия скрипта: {resp["nakrutka_soc-proof"]} | Скачать: https://github.com/plowside/customer-nikita\n\n\n')
 	except:
 		...
 

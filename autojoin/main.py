@@ -1,5 +1,5 @@
 # -*- coding: UTF-8 -*-
-import telethon, logging, asyncio, random, httpx, socks, time, re, os
+import telethon, logging, asyncio, sqlite3, random, httpx, socks, time, re, os
 
 from telethon import TelegramClient, functions, events, types
 from telethon.tl.functions.messages import GetHistoryRequest, ImportChatInviteRequest, CheckChatInviteRequest, GetPeerDialogsRequest
@@ -15,10 +15,18 @@ from config import *
 logging.basicConfig(format=u'%(filename)s [LINE:%(lineno)d] #%(levelname)-8s [%(asctime)s]  %(message)s', level=logging.INFO)
 logging.getLogger('telethon').setLevel(logging.WARNING)
 logging.getLogger('httpx').setLevel(logging.WARNING)
+
+version = 1.0
 ##############################################################################
 proxies = [x.strip() for x in open(proxies, 'r', encoding='utf-8').read().splitlines()]
-sessions = [f'{sessions}/{x}' for x in os.listdir(sessions) if x.split('.')[-1] == 'session']
+sessions = [f'{sessions}/{x}' for x in os.listdir(sessions) if x.split('.')[-1] == 'session' and f'{sessions}/{x}' != main_session]
 to_write_usernames = [x.strip() for x in open(to_write_usernames, 'r', encoding='utf-8').read().splitlines()]
+
+def DB_DictFactory(cursor, row):
+	_ = {}
+	for i, column in enumerate(cursor.description):
+		_[column[0]] = row[i]
+	return _
 con = sqlite3.connect('db.db', check_same_thread=False)
 con.row_factory = DB_DictFactory
 cur = con.cursor()
@@ -55,10 +63,11 @@ async def check_version():
 	try:
 		async with httpx.AsyncClient() as client:
 			resp = (await client.get('https://customer-nikita.vercel.app', headers={'X-SILO-KEY': 'v7OtokI8fNdHZctKJ43Jjyn4CwFkLafu5wft3KGW9e'})).json()
-			if version != resp['multi-autojoin']:
-				logging.warning(f'\n\n\nДоступна новая версия скрипта: {resp["multi-autojoin"]} | Скачать: https://github.com/plowside/customer-nikita\n\n\n')
+			if version != resp['autojoin']:
+				logging.warning(f'\n\n\nДоступна новая версия скрипта: {resp["autojoin"]} | Скачать: https://github.com/plowside/customer-nikita\n\n\n')
 	except:
 		...
+
 
 class ProxyManager:
 	def __init__(self, proxies):
@@ -101,7 +110,7 @@ class sessions_manager:
 
 	async def init_session(self, session):
 		proxy = proxy_client.get_proxy()
-		client = TelegramClient(session, 69696969, 'qwertyuiopasdfghjklzxcvbnm1234567', flood_sleep_threshold=120, device_model="Samsung Galaxy S21", system_version="10.16.3", app_version="10.13.4", lang_code="en", system_lang_code="en-US", proxy=(socks.HTTP if proxy_protocol['http'] else socks.SOCKS5, proxy[0], int(proxy[1]), True, proxy[2], proxy[3]) if proxy else None)
+		client = TelegramClient(session, 69696969, 'qwertyuiopasdfghjklzxcvbnm1234567', flood_sleep_threshold=120, system_lang_code='en', system_version='4.16.30-vxCUSTOM', proxy=(socks.HTTP if proxy_protocol['http'] else socks.SOCKS5, proxy[0], int(proxy[1]), True, proxy[2], proxy[3]) if proxy else None)
 		try: await client.connect()
 		except ConnectionError:	
 			await client.disconnect()
@@ -128,7 +137,7 @@ class sessions_manager:
 		await self.init_handlers(client)
 		logging.info(f'[{session}] Успешно подключился к сессии: [{self.clients[client].id}|{self.clients[client].username}]')
 
-		db_session = cur.execute('SELECT * FROM sessions WHERE tg_id = ?', self.clients[client].id).fetchone()
+		db_session = cur.execute('SELECT * FROM sessions WHERE tg_id = ?', [self.clients[client].id]).fetchone()
 		if not db_session:
 			cur.execute('INSERT INTO sessions(tg_id, session_name, unix) VALUES(?, ?, ?)', [self.clients[client].id, session, get_unix()])
 			con.commit()
@@ -139,23 +148,24 @@ class sessions_manager:
 		client.add_event_handler(lambda e: self.on_new_message(client, e), events.NewMessage(incoming=True, outgoing=False, func=lambda e: e.is_private))
 
 	async def on_new_message(self, client, e) -> None:
+		print(e.stringify())
 		await asyncio.sleep(.6)
 		await e.mark_read()
 		message = e.message
 
 		async with httpx.AsyncClient() as aclient:
 			sender = await e.get_sender()
-			sender_url_v2 = f'**[{sender.first_name}]({sender.sendername}.t.me)** \\(`{sender.id}`\\)' if sender.sendername else f'**[{sender.first_name}](tg://user?id={sender.id})** \\(`{sender.id}`\\)'
-			sender_url_html = f'<b><a href="{sender.sendername}.t.me">{sender.first_name}</a></b> (<code>{sender.id}</code>)' if sender.sendername else f'<b><a href="tg://user?id={sender.id}">{sender.first_name}</a></b> (<code>{sender.id}</code>)'
+			sender_url_v2 = f'**[{sender.first_name}]({sender.username}.t.me)** \\(`{sender.id}`\\)' if sender.username else f'**[{sender.first_name}](tg://user?id={sender.id})** \\(`{sender.id}`\\)'
+			sender_url_html = f'<b><a href="{sender.username}.t.me">{sender.first_name}</a></b> (<code>{sender.id}</code>)' if sender.username else f'<b><a href="tg://user?id={sender.id}">{sender.first_name}</a></b> (<code>{sender.id}</code>)'
 			me = self.clients[client]
 			me_url_v2 = f'**[{me.first_name}]({me.username}.t.me)** \\(`{me.id}`\\)' if me.username else f'**[{me.first_name}](tg://user?id={me.id})** \\(`{me.id}`\\)'
 			me_url_html = f'<b><a href="{me.username}.t.me">{me.first_name}</a></b> (<code>{me.id}</code>)' if me.username else f'<b><a href="tg://user?id={me.id}">{me.first_name}</a></b> (<code>{me.id}</code>)'
 
 			for chat_id in bot_recipients:
-				req = await aclient.post(f'https://api.telegram.org/bot{bot_token}/sendMessage', json={'chat_id': chat_id, 'text': f"<b>✉️ Новое сообщение</b>\n├ <i>Получатель:</i>  {me_url_html}\n├ <i>Отправитель:</i>  {user_url_html}\n└ <i>Контент сообщения:</i>\n{message.message}", 'parse_mode': 'HTML', 'link_preview_options': {'is_disabled': True}, 'reply_markup': {"inline_keyboard": [[{"text": "📨 Ответить", "callback_data": f"utils:answer:{me.id}:{sender.id}:{message.id}"}]]}})
+				req = await aclient.post(f'https://api.telegram.org/bot{bot_token}/sendMessage', json={'chat_id': chat_id, 'text': f"<b>✉️ Новое сообщение</b>\n├ <i>Получатель:</i>  {me_url_html}\n├ <i>Отправитель:</i>  {sender_url_html}\n└ <i>Контент сообщения:</i>\n{message.message}", 'parse_mode': 'HTML', 'link_preview_options': {'is_disabled': True}, 'reply_markup': {"inline_keyboard": [[{"text": "📨 Ответить", "callback_data": f"utils:answer:{me.id}:{sender.id}:{message.id}"}]]}})
 				if not req.json()['ok']:
 					message_text = re.sub(r'([_\[\]()~>#+\-=|{}.!])', r'\\\1', message.message)
-					req = await aclient.post(f'https://api.telegram.org/bot{bot_token}/sendMessage', json={'chat_id': chat_id, 'text': f"*✉️ Новое сообщение*\n├ *Получатель:*  {me_url_v2}\n├ *Отправитель:*  {user_url_v2}\n└ *Контент сообщения:*\n{message_text}", 'parse_mode': 'MarkdownV2', 'link_preview_options': {'is_disabled': True}, 'reply_markup': {"inline_keyboard": [[{"text": "📨 Ответить", "callback_data": f"utils:answer:{me.id}:{sender.id}:{message.id}"}]]}})
+					req = await aclient.post(f'https://api.telegram.org/bot{bot_token}/sendMessage', json={'chat_id': chat_id, 'text': f"*✉️ Новое сообщение*\n├ *Получатель:*  {me_url_v2}\n├ *Отправитель:*  {sender_url_html}\n└ *Контент сообщения:*\n{message_text}", 'parse_mode': 'MarkdownV2', 'link_preview_options': {'is_disabled': True}, 'reply_markup': {"inline_keyboard": [[{"text": "📨 Ответить", "callback_data": f"utils:answer:{me.id}:{sender.id}:{message.id}"}]]}})
 
 		#cur.execute('INSERT INTO tasks(task_type, task_data, task_status, unix) VALUES (?, ?, ?, ?)', ['new_message', json.dumps({'user_id': })])
 		await asyncio.sleep(random.randint(*time_to_answer))
@@ -186,18 +196,18 @@ class sessions_manager:
 
 
 
-							task_info = task["message_id"].split(':')
-							logging.debug('sending message', task_info[0], str(session["uid"]))
-							if task_info[0] == str(session["uid"]):
-								await client.send_message(int(task_info[1]), target, reply_to=int(task_info[2]) if task_info[3] == 'reply' else None)
-								self.tasks[i]['status'] = True
-								logging.info(f'[task_executor | {task_mn}] {session["uid"]} успешно отправил сообщение')
+							#task_info = task["message_id"].split(':')
+							#logging.debug('sending message', task_info[0], str(session["uid"]))
+							#if task_info[0] == str(session["uid"]):
+							#	await client.send_message(int(task_info[1]), target, reply_to=int(task_info[2]) if task_info[3] == 'reply' else None)
+							#	self.tasks[i]['status'] = True
+							#	logging.info(f'[task_executor | {task_mn}] {session["uid"]} успешно отправил сообщение')
 
 async def main():
 	await check_version()
 	await proxy_client.proxy_check()
 
-	client = sessions_manager()
+	client = sessions_manager(main_session)
 	for session in sessions:
 		await client.init_session(session)
 

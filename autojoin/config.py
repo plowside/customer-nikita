@@ -1,6 +1,6 @@
 ### GENERAL ###
-bot_token = '6511242030:AAH0IxAhjb1lguWBjHeMHl2SikkEIUgq8vs' # Токен тг бота для лога. Брать у @botfather
-bot_recipients = [1679518666, 1488282589, 7044387239, 5892870427] # ID получателей сообщений в боте
+bot_token = '7306244866:AAEMdvdTKMz3GemnnB39xXMG9UtQdaq7Ghk' # Токен тг бота для лога. Брать у @botfather
+bot_recipients = [6315225351] # ID получателей сообщений в боте
 main_session = 'data/main_session.session' # Путь до "главной" сессии, с которой будет происходить поиск новых задач (Эта сессия не будет участвовать в накрутке)
 main_channel = {'id': -1002103010424, 'link': 'https://t.me/+2rcHv9Xcxxw4ODU6'}
 delete_bad_sessions = True # Удалять невалидные сессии. (True — да | False — нет)
@@ -23,14 +23,4 @@ chances = {
 # Задержки до\после действий (before — до | after — после)
 delays = {
 	'after_join_through_link': (4, 10),
-
 }
-
-
-
-
-
-
-
-
-version = '1.0'

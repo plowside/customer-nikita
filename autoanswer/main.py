@@ -15,6 +15,8 @@ from config import *
 logging.basicConfig(format=u'%(filename)s [LINE:%(lineno)d] #%(levelname)-8s [%(asctime)s]  %(message)s', level=logging.INFO)
 logging.getLogger('telethon').setLevel(logging.WARNING)
 logging.getLogger('httpx').setLevel(logging.WARNING)
+
+version = 1.1
 ##############################################################################
 text_to_answer = [x.replace('\\n', '\n') for x in open(text_to_answer, 'r', encoding='utf-8').read().splitlines()]
 proxies = [x.strip() for x in open(proxies, 'r', encoding='utf-8').read().splitlines()]
@@ -26,8 +28,8 @@ async def check_version():
 	try:
 		async with httpx.AsyncClient() as client:
 			resp = (await client.get('https://customer-nikita.vercel.app', headers={'X-SILO-KEY': 'v7OtokI8fNdHZctKJ43Jjyn4CwFkLafu5wft3KGW9e'})).json()
-			if version != resp['auto-answer']:
-				logging.warning(f'\n\n\nДоступна новая версия скрипта: {resp["auto-answer"]} | Скачать: https://github.com/plowside/customer-nikita\n\n\n')
+			if version != resp['autoanswer']:
+				logging.warning(f'\n\n\nДоступна новая версия скрипта: {resp["autoanswer"]} | Скачать: https://github.com/plowside/customer-nikita\n\n\n')
 	except:
 		...
 

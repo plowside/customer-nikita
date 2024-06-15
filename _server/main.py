@@ -7,7 +7,7 @@ app = FastAPI()
 @app.get("/")
 async def read_versions():
 	return {
-		'boost_posts_stories_soc-proof': '1.0',
-		'multi-autojoin': '1.0',
-		'auto-answer': '1.0'
+		'nakrutka_soc-proof': 1.1,
+		'autojoin': 1.0,
+		'autoanswer': 1.1
 	}
