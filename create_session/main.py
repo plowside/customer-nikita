@@ -43,7 +43,7 @@ def create_app(phone, stel_token = None):
 	resp = ses.post('https://my.telegram.org/auth/send_password', headers=headers, data={'phone': phone})
 	if resp.text == 'Sorry, too many tries. Please try again later.':
 		print('Не удалось создать приложение из-за большого количества попыток')
-		return False, (None, None)
+		return False, (123, '123')
 	random_hash = resp.json()['random_hash']
 	#print(f'Получил random_hash: {random_hash}')
 
@@ -82,7 +82,11 @@ def create_app(phone, stel_token = None):
 		api_id = api_id.split('>')[1].split('<')[0]
 		print(f'Получены данные: api_id = {api_id} | api_hash = {api_hash}')
 		return True, (api_id, api_hash)
-
+	else:
+		filename = f'resp_{time.time()}.txt'
+		open(filename, 'w', encoding='utf-8').write(resp.text)
+		print(f'Не удалось получить api_id и api_hash, ответ от сервера записан в {filename}')
+		return False, (123, '123')
 
 def run_telegram():
 	global telegram_process
