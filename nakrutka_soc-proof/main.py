@@ -1,5 +1,5 @@
 # -*- coding: UTF-8 -*-
-import telethon, logging, asyncio, sqlite3, httpx, time
+import telethon, logging, asyncio, sqlite3, httpx, socks, time
 
 from telethon import TelegramClient, functions, events, types
 from telethon.tl.functions.messages import GetHistoryRequest, ImportChatInviteRequest, CheckChatInviteRequest, GetPeerDialogsRequest
@@ -9,6 +9,8 @@ from telethon.errors import rpcerrorlist
 
 from config import *
 from tg_bot import main as tg_bot_func
+
+proxies = [x.strip() for x in open(proxies, 'r', encoding='utf-8').read().splitlines()]
 ##############################################################################
 logging.basicConfig(format=u'%(filename)s [LINE:%(lineno)d] #%(levelname)-8s [%(asctime)s]  %(message)s', level=logging.INFO)
 logging.getLogger('telethon').setLevel(logging.WARNING)
@@ -52,6 +54,37 @@ async def check_version():
 	except:
 		...
 
+class ProxyManager:
+	def __init__(self, proxies):
+		self.proxies = {proxy: 0 for proxy in proxies}
+
+	def get_proxy(self):
+		try:
+			min_usage_proxy = min(self.proxies, key=self.proxies.get)
+			self.proxies[min_usage_proxy] += 1
+			return min_usage_proxy.split(':')
+		except: return None
+
+	def record_proxy_usage(self, proxy):
+		if proxy in self.proxies:
+			self.proxies[proxy] -= 1
+
+	async def proxy_check_(self, proxy):
+		_proxy = proxy.split(':')
+		try:
+			async with httpx.AsyncClient(proxies={'http://':f'{"http" if proxy_protocol["http"] else "socks5"}://{_proxy[2]}:{_proxy[3]}@{_proxy[0]}:{_proxy[1]}', 'https://':f'{"http" if proxy_protocol["http"] else "socks5"}://{_proxy[2]}:{_proxy[3]}@{_proxy[0]}:{_proxy[1]}'}) as client:
+				await client.get('http://ip.bablosoft.com')
+		except:
+			logging.info(f'[proxy_check] Невалидный прокси: {proxy}')
+			del self.proxies[proxy]
+
+	async def proxy_check(self):
+		logging.info(f'Проверяю {len(self.proxies)} прокси')
+		futures = []
+		for proxy in list(self.proxies):
+			futures.append(self.proxy_check_(proxy))
+			await asyncio.gather(*futures)
+
 class session_manager:
 	def __init__(self, session_path, targets):
 		self.targets = targets
@@ -61,7 +94,8 @@ class session_manager:
 
 	# Подключение к сессии
 	async def init_session(self):
-		self.client = TelegramClient(self.session_path, 69696969, 'qwertyuiopasdfghjklzxcvbnm1234567', flood_sleep_threshold=120, device_model = "iPhone 13 Pro Max", system_version = "14.8.1", app_version = "10.6", lang_code = "en", system_lang_code = "en-US")
+		proxy = proxy_client.get_proxy()
+		self.client = TelegramClient(self.session_path, 69696969, 'qwertyuiopasdfghjklzxcvbnm1234567', flood_sleep_threshold=120, system_lang_code='en', system_version='4.16.30-vxCUSTOM', proxy=(socks.HTTP if proxy_protocol['http'] else socks.SOCKS5, proxy[0], int(proxy[1]), True, proxy[2], proxy[3]) if proxy else None)
 		
 		try: await self.client.connect()
 		except ConnectionError:	
@@ -170,20 +204,23 @@ class session_manager:
 				if time.time() - last_story > 300:
 					for (channel_id, channeld_id) in channels.items():
 						db_stories = [x[2] for x in cur.execute('SELECT * FROM channels_tasks WHERE channeld_id = ? AND task_type = ?', [channeld_id, 'story']).fetchall()]
-						for story in (await self.client(functions.stories.GetPeerStoriesRequest(peer=channel_id))).stories.stories:
-							new = False
-							if channel_id in self.channels_stories:
-								if story.id not in self.channels_stories[channel_id]:
-									self.channels_stories[channel_id].append(story.id)
+						try: 
+							for story in (await self.client(functions.stories.GetPeerStoriesRequest(peer=channel_id))).stories.stories:
+								new = False
+								if channel_id in self.channels_stories:
+									if story.id not in self.channels_stories[channel_id]:
+										self.channels_stories[channel_id].append(story.id)
+										new = True
+								else:
+									self.channels_stories[channel_id] = [story.id]
 									new = True
-							else:
-								self.channels_stories[channel_id] = [story.id]
-								new = True
-							if story.id in db_stories or not new: continue
-							story_link = f'https://t.me/{self.channels_usernames[channel_id]}/s/{story.id}'
-							cur.execute('INSERT INTO channels_tasks(channeld_id, message_id, task_type, task_link) VALUES(?, ?, ?, ?)', [channeld_id, story.id, 'story', story_link])
-							con.commit()
-							logging.info(f'[{channel_id}] Новая задача: {story.id}|story')
+								if story.id in db_stories or not new: continue
+								story_link = f'https://t.me/{self.channels_usernames[channel_id]}/s/{story.id}'
+								cur.execute('INSERT INTO channels_tasks(channeld_id, message_id, task_type, task_link) VALUES(?, ?, ?, ?)', [channeld_id, story.id, 'story', story_link])
+								con.commit()
+								logging.info(f'[{channel_id}] Новая задача: {story.id}|story')
+						except Exception as e:
+							logging.error(f'[{channel_id}] Не удалось получить истории: {e}')
 						await asyncio.sleep(3)
 					last_story = time.time()
 
@@ -257,6 +294,7 @@ class session_manager:
 async def main():
 	await check_version()
 	future = asyncio.create_task(tg_bot_func(soc_proof_services))
+	await proxy_client.proxy_check()
 	client = session_manager(session, target_channels)
 	status = await client.init_session()
 	if not status:
@@ -270,5 +308,5 @@ async def main():
 	await client.channels_watcher()
 
 if __name__ == '__main__':
-	asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
+	proxy_client = ProxyManager(proxies)
 	asyncio.run(main())

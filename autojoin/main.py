@@ -1,5 +1,5 @@
 # -*- coding: UTF-8 -*-
-import telethon, logging, asyncio, random, httpx, socks, time, os
+import telethon, logging, asyncio, random, httpx, socks, time, re, os
 
 from telethon import TelegramClient, functions, events, types
 from telethon.tl.functions.messages import GetHistoryRequest, ImportChatInviteRequest, CheckChatInviteRequest, GetPeerDialogsRequest
@@ -96,7 +96,8 @@ class ProxyManager:
 class sessions_manager:
 	def __init__(self, main_session):
 		self.clients = {}
-		self.main_client = TelegramClient(main_session, 69696969, 'qwertyuiopasdfghjklzxcvbnm1234567', flood_sleep_threshold=120, device_model="Samsung Galaxy S21", system_version="10.16.3", app_version="10.13.4", lang_code="en", system_lang_code="en-US")
+		self.clients_id = {}
+		self.main_client = TelegramClient(main_session, 69696969, 'qwertyuiopasdfghjklzxcvbnm1234567', flood_sleep_threshold=120, system_lang_code='en', system_version='4.16.30-vxCUSTOM')
 
 	async def init_session(self, session):
 		proxy = proxy_client.get_proxy()
@@ -123,6 +124,7 @@ class sessions_manager:
 		await client.start()
 
 		self.clients[client] = await client.get_me()
+		self.clients_id[self.clients[client].id] = client
 		await self.init_handlers(client)
 		logging.info(f'[{session}] Успешно подключился к сессии: [{self.clients[client].id}|{self.clients[client].username}]')
 
@@ -136,11 +138,26 @@ class sessions_manager:
 	async def init_handlers(self, client):
 		client.add_event_handler(lambda e: self.on_new_message(client, e), events.NewMessage(incoming=True, outgoing=False, func=lambda e: e.is_private))
 
-	async def on_new_message(self, client, e):
-		await asyncio.sleep(.3)
-		await client(functions.account.UpdateStatusRequest(offline=False))
+	async def on_new_message(self, client, e) -> None:
 		await asyncio.sleep(.6)
 		await e.mark_read()
+		message = e.message
+
+		async with httpx.AsyncClient() as aclient:
+			sender = await e.get_sender()
+			sender_url_v2 = f'**[{sender.first_name}]({sender.sendername}.t.me)** \\(`{sender.id}`\\)' if sender.sendername else f'**[{sender.first_name}](tg://user?id={sender.id})** \\(`{sender.id}`\\)'
+			sender_url_html = f'<b><a href="{sender.sendername}.t.me">{sender.first_name}</a></b> (<code>{sender.id}</code>)' if sender.sendername else f'<b><a href="tg://user?id={sender.id}">{sender.first_name}</a></b> (<code>{sender.id}</code>)'
+			me = self.clients[client]
+			me_url_v2 = f'**[{me.first_name}]({me.username}.t.me)** \\(`{me.id}`\\)' if me.username else f'**[{me.first_name}](tg://user?id={me.id})** \\(`{me.id}`\\)'
+			me_url_html = f'<b><a href="{me.username}.t.me">{me.first_name}</a></b> (<code>{me.id}</code>)' if me.username else f'<b><a href="tg://user?id={me.id}">{me.first_name}</a></b> (<code>{me.id}</code>)'
+
+			for chat_id in bot_recipients:
+				req = await aclient.post(f'https://api.telegram.org/bot{bot_token}/sendMessage', json={'chat_id': chat_id, 'text': f"<b>✉️ Новое сообщение</b>\n├ <i>Получатель:</i>  {me_url_html}\n├ <i>Отправитель:</i>  {user_url_html}\n└ <i>Контент сообщения:</i>\n{message.message}", 'parse_mode': 'HTML', 'link_preview_options': {'is_disabled': True}, 'reply_markup': {"inline_keyboard": [[{"text": "📨 Ответить", "callback_data": f"utils:answer:{me.id}:{sender.id}:{message.id}"}]]}})
+				if not req.json()['ok']:
+					message_text = re.sub(r'([_\[\]()~>#+\-=|{}.!])', r'\\\1', message.message)
+					req = await aclient.post(f'https://api.telegram.org/bot{bot_token}/sendMessage', json={'chat_id': chat_id, 'text': f"*✉️ Новое сообщение*\n├ *Получатель:*  {me_url_v2}\n├ *Отправитель:*  {user_url_v2}\n└ *Контент сообщения:*\n{message_text}", 'parse_mode': 'MarkdownV2', 'link_preview_options': {'is_disabled': True}, 'reply_markup': {"inline_keyboard": [[{"text": "📨 Ответить", "callback_data": f"utils:answer:{me.id}:{sender.id}:{message.id}"}]]}})
+
+		#cur.execute('INSERT INTO tasks(task_type, task_data, task_status, unix) VALUES (?, ?, ?, ?)', ['new_message', json.dumps({'user_id': })])
 		await asyncio.sleep(random.randint(*time_to_answer))
 		await e.respond(random.choice(text_to_answer))
 		sender = await e.get_sender()
@@ -153,6 +170,28 @@ class sessions_manager:
 		await asyncio.sleep(3)
 		await client(functions.account.UpdateStatusRequest(offline=True))
 
+
+
+	async def send_message(self, client, chat_id: int, messaget_text: str, message_id: int = None) -> bool:
+		try:
+			await client.send_message(chat_id, messaget_text, reply_to=message_id if message_id else None)
+			logging.info(f'[{self.clients[client].id}] Успешно отправил сообщение: ')
+			return True
+		except:
+			return False
+
+
+
+
+
+
+
+							task_info = task["message_id"].split(':')
+							logging.debug('sending message', task_info[0], str(session["uid"]))
+							if task_info[0] == str(session["uid"]):
+								await client.send_message(int(task_info[1]), target, reply_to=int(task_info[2]) if task_info[3] == 'reply' else None)
+								self.tasks[i]['status'] = True
+								logging.info(f'[task_executor | {task_mn}] {session["uid"]} успешно отправил сообщение')
 
 async def main():
 	await check_version()

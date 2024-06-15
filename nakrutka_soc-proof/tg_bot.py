@@ -40,7 +40,7 @@ class states(StatesGroup):
 #################################################################################################################################
 @main_router.callback_query(F.data.startswith('utils'), StateFilter('*'))
 async def handler_utils(call: CallbackQuery, state: FSMContext):
-	if message.from_user.id not in admin_ids: return
+	if call.from_user.id not in admin_ids: return
 	await state.clear()
 	cd = call.data.split(':')
 

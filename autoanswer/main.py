@@ -68,7 +68,7 @@ class sessions_manager:
 
 	async def init_session(self, session):
 		proxy = proxy_client.get_proxy()
-		client = TelegramClient(session, 69696969, 'qwertyuiopasdfghjklzxcvbnm1234567', flood_sleep_threshold=120, device_model="Samsung Galaxy S21", system_version="10.16.3", app_version="10.13.4", lang_code="en", system_lang_code="en-US", proxy=(socks.HTTP if proxy_protocol['http'] else socks.SOCKS5, proxy[0], int(proxy[1]), True, proxy[2], proxy[3]) if proxy else None)
+		client = TelegramClient(session, 69696969, 'qwertyuiopasdfghjklzxcvbnm1234567', flood_sleep_threshold=120, system_lang_code='en', system_version='4.16.30-vxCUSTOM', proxy=(socks.HTTP if proxy_protocol['http'] else socks.SOCKS5, proxy[0], int(proxy[1]), True, proxy[2], proxy[3]) if proxy else None)
 		try: await client.connect()
 		except ConnectionError:	
 			await client.disconnect()
