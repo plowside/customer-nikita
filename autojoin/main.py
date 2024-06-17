@@ -1,5 +1,5 @@
 # -*- coding: UTF-8 -*-
-import telethon, logging, asyncio, sqlite3, random, httpx, socks, time, re, os
+import traceback, datetime, telethon, logging, asyncio, sqlite3, random, httpx, socks, json, time, re, os
 
 from telethon import TelegramClient, functions, events, types
 from telethon.tl.functions.messages import GetHistoryRequest, ImportChatInviteRequest, CheckChatInviteRequest, GetPeerDialogsRequest
@@ -8,19 +8,24 @@ from telethon.tl.functions.contacts import AddContactRequest
 from telethon.tl.functions.account import UpdateProfileRequest
 from telethon.tl.types import InputPhoneContact
 from telethon.errors import rpcerrorlist
+from apscheduler.schedulers.asyncio import AsyncIOScheduler
 
 from config import *
+from tg_bot import main as tg_bot_func
 
 ##############################################################################
 logging.basicConfig(format=u'%(filename)s [LINE:%(lineno)d] #%(levelname)-8s [%(asctime)s]  %(message)s', level=logging.INFO)
+logging.getLogger('apscheduler').setLevel(logging.WARNING)
 logging.getLogger('telethon').setLevel(logging.WARNING)
+logging.getLogger('aiogram').setLevel(logging.WARNING)
 logging.getLogger('httpx').setLevel(logging.WARNING)
 
-version = 1.0
+version = 1.1
 ##############################################################################
 proxies = [x.strip() for x in open(proxies, 'r', encoding='utf-8').read().splitlines()]
 sessions = [f'{sessions}/{x}' for x in os.listdir(sessions) if x.split('.')[-1] == 'session' and f'{sessions}/{x}' != main_session]
 to_write_usernames = [x.strip() for x in open(to_write_usernames, 'r', encoding='utf-8').read().splitlines()]
+to_write_text = [x.strip() for x in open(to_write_text, 'r', encoding='utf-8').read().splitlines()]
 
 def DB_DictFactory(cursor, row):
 	_ = {}
@@ -42,7 +47,6 @@ cur.execute('''CREATE TABLE IF NOT EXISTS tasks(
 	task_data TEXT,
 	task_status TEXT,
 	unix INTEGER
-	status BOOL DEFAULT False
 )''')
 
 
@@ -107,6 +111,13 @@ class sessions_manager:
 		self.clients = {}
 		self.clients_id = {}
 		self.main_client = TelegramClient(main_session, 69696969, 'qwertyuiopasdfghjklzxcvbnm1234567', flood_sleep_threshold=120, system_lang_code='en', system_version='4.16.30-vxCUSTOM')
+		self.scheduler = AsyncIOScheduler()
+		self.lock = asyncio.Lock()
+
+	async def init_main_session(self):
+		await self.main_client.start()
+		await self.join_channel(self.main_client, await self.main_client.get_me(), '', main_channel['link'])
+		self.main_client.add_event_handler(lambda e: self.on_new_message_(self.main_client, e), events.NewMessage(chats=[main_channel['id']]))
 
 	async def init_session(self, session):
 		proxy = proxy_client.get_proxy()
@@ -137,27 +148,45 @@ class sessions_manager:
 		await self.init_handlers(client)
 		logging.info(f'[{session}] Успешно подключился к сессии: [{self.clients[client].id}|{self.clients[client].username}]')
 
-		db_session = cur.execute('SELECT * FROM sessions WHERE tg_id = ?', [self.clients[client].id]).fetchone()
-		if not db_session:
-			cur.execute('INSERT INTO sessions(tg_id, session_name, unix) VALUES(?, ?, ?)', [self.clients[client].id, session, get_unix()])
-			con.commit()
-			logging.info(f'[{session}] Добавлена новая сессия: [{self.clients[client].id}|{self.clients[client].username}]')
+		self.scheduler.add_job(self.send_message_contact, trigger='date', run_date=self.scheduler_calculate_run_time(schedulers['send_message_contact']), args=(self.clients[client].id, ))
+		self.scheduler.add_job(self.set_online, trigger='date', run_date=self.scheduler_calculate_run_time(schedulers['set_online']), args=(self.clients[client].id, ))
+		self.scheduler.add_job(self.avatar_update, trigger='date', run_date=self.scheduler_calculate_run_time(schedulers['avatar_update']), args=(self.clients[client].id, ))
+		print(self.scheduler_calculate_run_time(schedulers['send_message_contact']), ' -|- ' , self.scheduler_calculate_run_time(schedulers['set_online']), ' -|- ' , self.scheduler_calculate_run_time(schedulers['avatar_update']))
+		os.makedirs(f'data/avatars/{self.clients[client].id}', exist_ok=True)
+		async with self.lock:
+			db_session = cur.execute('SELECT * FROM sessions WHERE tg_id = ?', [self.clients[client].id]).fetchone()
+			if not db_session:
+				cur.execute('INSERT INTO sessions(tg_id, session_name, unix) VALUES(?, ?, ?)', [self.clients[client].id, session, get_unix()])
+				con.commit()
+				logging.info(f'[{session}] Добавлена новая сессия: [{self.clients[client].id}|{self.clients[client].username}]')
 
 
 	async def init_handlers(self, client):
-		client.add_event_handler(lambda e: self.on_new_message(client, e), events.NewMessage(incoming=True, outgoing=False, func=lambda e: e.is_private))
+		client.add_event_handler(lambda e: self.on_new_message(client, e), events.NewMessage(incoming=True, outgoing=False, func=lambda e: e.is_private or e.is_channel))
 
+	# Хендлер нового сообщения через все сессии
 	async def on_new_message(self, client, e) -> None:
-		print(e.stringify())
-		await asyncio.sleep(.6)
-		await e.mark_read()
-		message = e.message
+		sender = await e.get_sender()
+		try:
+			if sender.bot: return
+		except: ...
 
+		me = self.clients[client]
+		if e.is_channel:
+			# Шанс того, что новый пост в канале будет прочитан
+			if random.random() < (chances['read_new_post'] / 100):
+				await e.mark_read()
+				logging.info(f'[{me.id}] Новый пост в {sender.id} был прочитан')
+			return
+		else:
+			await asyncio.sleep(.6)
+			await e.mark_read()
+		
+		message = e.message
 		async with httpx.AsyncClient() as aclient:
-			sender = await e.get_sender()
 			sender_url_v2 = f'**[{sender.first_name}]({sender.username}.t.me)** \\(`{sender.id}`\\)' if sender.username else f'**[{sender.first_name}](tg://user?id={sender.id})** \\(`{sender.id}`\\)'
 			sender_url_html = f'<b><a href="{sender.username}.t.me">{sender.first_name}</a></b> (<code>{sender.id}</code>)' if sender.username else f'<b><a href="tg://user?id={sender.id}">{sender.first_name}</a></b> (<code>{sender.id}</code>)'
-			me = self.clients[client]
+			
 			me_url_v2 = f'**[{me.first_name}]({me.username}.t.me)** \\(`{me.id}`\\)' if me.username else f'**[{me.first_name}](tg://user?id={me.id})** \\(`{me.id}`\\)'
 			me_url_html = f'<b><a href="{me.username}.t.me">{me.first_name}</a></b> (<code>{me.id}</code>)' if me.username else f'<b><a href="tg://user?id={me.id}">{me.first_name}</a></b> (<code>{me.id}</code>)'
 
@@ -166,48 +195,227 @@ class sessions_manager:
 				if not req.json()['ok']:
 					message_text = re.sub(r'([_\[\]()~>#+\-=|{}.!])', r'\\\1', message.message)
 					req = await aclient.post(f'https://api.telegram.org/bot{bot_token}/sendMessage', json={'chat_id': chat_id, 'text': f"*✉️ Новое сообщение*\n├ *Получатель:*  {me_url_v2}\n├ *Отправитель:*  {sender_url_html}\n└ *Контент сообщения:*\n{message_text}", 'parse_mode': 'MarkdownV2', 'link_preview_options': {'is_disabled': True}, 'reply_markup': {"inline_keyboard": [[{"text": "📨 Ответить", "callback_data": f"utils:answer:{me.id}:{sender.id}:{message.id}"}]]}})
+		logging.info(f'[{me.id}] Новое сообщение от {sender.id}')
 
-		#cur.execute('INSERT INTO tasks(task_type, task_data, task_status, unix) VALUES (?, ?, ?, ?)', ['new_message', json.dumps({'user_id': })])
-		await asyncio.sleep(random.randint(*time_to_answer))
-		await e.respond(random.choice(text_to_answer))
-		sender = await e.get_sender()
-		if not sender.contact:
-			await asyncio.sleep(1.3)
-			await client(AddContactRequest(id=sender.id, phone='i need that phone', first_name=sender.first_name if sender.first_name else '', last_name=sender.last_name if sender.last_name else '', add_phone_privacy_exception=False))
-			logging.info(f'Ответил и Добавил пользователя ({sender.id}) в контакты')
-		else:
-			logging.info(f'Ответил пользователю ({sender.id})')
-		await asyncio.sleep(3)
-		await client(functions.account.UpdateStatusRequest(offline=True))
+	# Хендлер нового сообщения через main_session
+	async def on_new_message_(self, client, e) -> None:
+		message = e.message
+		if not message.message.startswith('/'): return
+
+		command = message.message.split(' ')[0].replace('/', '')
+		if command not in ['con', 'discon', 'allcon']:
+			logging.warning(f'[{message.id}] Неизвестная команда: {command}')
+			return
+
+		link = re.findall(r'(?:https?|ftp):\/\/[^\s]+', message.message)
+		if len(link) == 0:
+			logging.warning(f'[{message.id}|{command}] Не найдено : {command}')
+			return
+
+		async with self.lock:
+			cur.execute('INSERT INTO tasks (task_type, task_data, task_status, unix) VALUES (?, ?, ?, ?)', ['command', json.dumps({'message_id': message.id, 'command': command, 'link': link[0]}), 'created', get_unix()])
+			con.commit()
+		await client(functions.messages.SendReactionRequest(peer=main_channel['id'], msg_id=message.id, big=True, add_to_recent=True, reaction=[types.ReactionEmoji(emoticon='👍')]))
+		logging.info(f'Новая задача: [{command}|{message.id}]')
 
 
 
-	async def send_message(self, client, chat_id: int, messaget_text: str, message_id: int = None) -> bool:
+
+
+
+
+
+	# Выполнитель задач
+	async def tasks_watcher(self):
+		while True:
+			async with self.lock:
+				tasks = cur.execute('SELECT * FROM tasks WHERE task_status = ?', ['created']).fetchall()
+			self.tasks = []
+			for task in tasks:
+				match task['task_type']:
+					case 'send_message':
+						task_data = json.loads(task['task_data'])
+						client = self.clients_id[task_data['from_user_id']]
+						await self.async_create_task(self.send_message(client, task['id'], task_data['to_user_id'], task_data['message_text'], task_data['message_id'] if task_data['answer_method'] == 'reply' else None))
+
+					case 'command':
+						task['task_data'] = json.loads(task['task_data'])
+						await self.async_create_task(self.task_executor(task))
+
+			await asyncio.sleep(5)
+
+
+
+	async def send_message(self, client, task_id: int, chat_id: int, message_text: str, message_id: int = None) -> bool:
 		try:
-			await client.send_message(chat_id, messaget_text, reply_to=message_id if message_id else None)
-			logging.info(f'[{self.clients[client].id}] Успешно отправил сообщение: ')
+			await client(functions.account.UpdateStatusRequest(offline=False))
+			await asyncio.sleep(.8)
+			await client.send_message(chat_id, message_text, reply_to=message_id if message_id else None)
+			logging.info(f'[{self.clients[client].id}] Успешно отправил сообщение')
+			async with self.lock:
+				cur.execute('UPDATE tasks SET task_status = ? WHERE id = ?', ['completed', task_id])
+				con.commit()
+			return True
+		except Exception as e:
+			async with self.lock:
+				cur.execute('UPDATE tasks SET task_status = ? WHERE id = ?', ['error', task_id])
+				con.commit()
+			logging.info(f'[{self.clients[client].id}] Не удалось отправить сообщение[{chat_id}|{message_id}]: {e}')
+			return False
+
+	async def join_channel(self, client, client_data, task_id_text, target):
+		try:
+			try: await client(JoinChannelRequest(target))
+			except: await client(ImportChatInviteRequest(target.replace('+', '').replace('https://t.me/', '')))
+			return True
+		except rpcerrorlist.UserNotParticipantError:
+			return True
+		except rpcerrorlist.InviteRequestSentError:
+			return True
+		except rpcerrorlist.FloodWaitError:
+			logging.info(f'[{task_id_text}|{client_data.id}] Антифлуд')
+			return False
+		except rpcerrorlist.ChannelPrivateError:
+			logging.info(f'[{task_id_text}|{client_data.id}] Канал приватный либо пользователь заблокирован в нём')
+			return False
+		except rpcerrorlist.InviteHashExpiredError:
+			logging.info(f'[{task_id_text}|{client_data.id}] Невалидная ссылка')
+			return None
+		except Exception as e:
+			return False
+	
+	async def leave_channel(self, client, client_data, task_id_text, target):
+		try:
+			try: await client.delete_dialog((await client.get_entity(target)).id)
+			except ValueError: ...
+			except: await client(LeaveChannelRequest(target))
+			return True
+		except rpcerrorlist.FloodWaitError:
+			logging.info(f'[{task_id_text}|{client_data.id}] Антифлуд')
+			return False
+		except rpcerrorlist.ChannelPrivateError:
+			logging.info(f'[{task_id_text}|{client_data.id}] Канал приватный либо пользователь заблокирован в нём')
+			return False
+		except rpcerrorlist.InviteHashExpiredError:
+			logging.info(f'[{task_id_text}|{client_data.id}] Невалидная ссылка')
+			return None
+		except rpcerrorlist.UserNotParticipantError:
 			return True
 		except:
 			return False
 
 
+	async def task_executor(self, task):
+		cur.execute('UPDATE tasks SET task_status = ? WHERE id = ?', ['in_progress', task['id']])
+		con.commit()
+		task_data = task['task_data']
+		link = task_data['link']
+		task_id_text = f"{task_data['command']}|{task_data['message_id']}"
+		task_completed = True
+		for client, client_data in self.clients.items():
+			try:
+				match task['task_data']['command']:
+					case 'con':
+						status = await self.join_channel(client, client_data, task_id_text, link)
+						if status:
+							logging.info(f'[{task_id_text}|{client_data.id}] Успешно вступил по ссылке')
+							task_completed = True
+							await asyncio.sleep(random.randint(*delays['after_join__con']))
+						elif status is None:
+							break
+						else:
+							logging.info(f'[{task_id_text}|{client_data.id}] Не удалось вступить по ссылке')
+					case 'discon':
+						status = await self.leave_channel(client, client_data, task_id_text, link)
+						if status:
+							logging.info(f'[{task_id_text}|{client_data.id}] Успешно покинул канал')
+							task_completed = True
+							await asyncio.sleep(random.randint(*delays['after_leave__discon']))
+						elif status is None:
+							break
+						else:
+							logging.info(f'[{task_id_text}|{client_data.id}] Не удалось покинуть канал')
+					case 'allcon':
+						status = await self.leave_channel(client, client_data, task_id_text, link)
+						if status:
+							logging.info(f'[{task_id_text}|{client_data.id}] Успешно покинул канал')
+							task_completed = True
+						elif status is None:
+							break
+						else:
+							logging.info(f'[{task_id_text}|{client_data.id}] Не удалось покинуть канал')
+						await asyncio.sleep(random.randint(*delays['between_join_and_leave__allcon']))
+
+						status = await self.join_channel(client, client_data, task_id_text, link)
+						if status:
+							logging.info(f'[{task_id_text}|{client_data.id}] Успешно вступил по ссылке')
+							task_completed = True
+						elif status is None:
+							break
+						else:
+							logging.info(f'[{task_id_text}|{client_data.id}] Не удалось вступить по ссылке')
+			except Exception as e:
+				logging.error(f'[{task_id_text}|{client_data.id} | LINE:{traceback.extract_tb(e.__traceback__)[-1].lineno}] Общая ошибка ({type(e)}): {e}\n{traceback.format_exc()}')
+
+		cur.execute('UPDATE tasks SET task_status = ? WHERE id = ?', ['completed' if task_completed else 'created', task['id']])
+		con.commit()
+
+	async def async_create_task(self, task):
+		asyncio.get_event_loop().create_task(task)
+
+
+	def scheduler_calculate_run_time(self, schedule: dict):
+		return datetime.datetime.now() + datetime.timedelta(days=random.randint(*schedule.get('days', (0, 0))), hours=random.randint(*schedule.get('hours', (0, 0))), minutes=random.randint(*schedule.get('minutes', (0, 0))), seconds=random.randint(*schedule.get('seconds', (0, 0))))
+
+	async def send_message_contact(self, client_id):
+		self.scheduler.add_job(self.send_message_contact, trigger='date', run_date=self.scheduler_calculate_run_time(schedulers['send_message_contact']), args=(client_id, ))
+		client = self.clients_id[client_id]
+		username = random.choice(to_write_usernames)
+		
+		logging.info(f'[{client_id}] Пишу @{username}')
+		user_info = await client.get_entity(username)
+		await asyncio.sleep(2)
+		await client.send_message(username, random.choice(to_write_text))
+		await asyncio.sleep(4)
+		await client(AddContactRequest(id=user_info.id, phone='i need that phone', first_name=user_info.first_name if user_info.first_name else '', last_name=user_info.last_name if user_info.last_name else '', add_phone_privacy_exception=False))
+		logging.info(f'[{client_id}] Успешно написал и добавил в контакты @{username}')
+
+	async def set_online(self, client_id, wait=True):
+		self.scheduler.add_job(self.set_online, trigger='date', run_date=self.scheduler_calculate_run_time(schedulers['set_online']), args=(client_id, ))
+		client = self.clients_id[client_id]
+		await client(functions.account.UpdateStatusRequest(offline=False))
+		logging.info(f'[{client_id}] Установлен онлайн статус')
+		if wait:
+			await asyncio.sleep(random.randint(*delays['online_time']))
+			await client(functions.account.UpdateStatusRequest(offline=True))
+
+	async def avatar_update(self, client_id):
+		self.scheduler.add_job(self.avatar_update, trigger='date', run_date=self.scheduler_calculate_run_time(schedulers['avatar_update']), args=(client_id, ))
+		client = self.clients_id[client_id]
+		avatars = os.listdir(f'data/avatars/{client_id}')
+		if len(avatars) == 0:
+			logging.warning(f'[{client_id}] Нет доступных изображений для установки аватарки')
+			return
+		avatar = random.choice(avatars)
+		logging.info(f'[{client_id}] Устанавливаю аватарку {avatar}')
+
+		try:
+			await client(functions.photos.UploadProfilePhotoRequest(file=await client.upload_file(f'data/avatars/{client_id}/{avatar}')))
+			logging.info(f'[{client_id}] Успешно установил аватарку')
+		except Exception as e: logging.error(f'[{client_id}] Не удалось установить аватарку: {e}')
 
 
 
 
-
-							#task_info = task["message_id"].split(':')
-							#logging.debug('sending message', task_info[0], str(session["uid"]))
-							#if task_info[0] == str(session["uid"]):
-							#	await client.send_message(int(task_info[1]), target, reply_to=int(task_info[2]) if task_info[3] == 'reply' else None)
-							#	self.tasks[i]['status'] = True
-							#	logging.info(f'[task_executor | {task_mn}] {session["uid"]} успешно отправил сообщение')
 
 async def main():
 	await check_version()
 	await proxy_client.proxy_check()
+	future = asyncio.create_task(tg_bot_func())
 
 	client = sessions_manager(main_session)
+	await client.init_main_session()
+	
 	for session in sessions:
 		await client.init_session(session)
 
@@ -215,7 +423,9 @@ async def main():
 		logging.info('Нет сессий для работы')
 		exit()
 
-	await asyncio.Event().wait()
+	client.scheduler.start()
+	await client.tasks_watcher()
+	#await asyncio.Event().wait()
 
 if __name__ == '__main__':
 	proxy_client = ProxyManager(proxies)
