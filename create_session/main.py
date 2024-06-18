@@ -61,7 +61,7 @@ class ProxyManager:
 		futures = []
 		for proxy in list(self.proxies):
 			futures.append(self.proxy_check_(proxy))
-			await asyncio.gather(*futures)
+		await asyncio.gather(*futures)
 
 proxy_client = ProxyManager(proxies)
 
@@ -91,24 +91,25 @@ def create_app(phone, stel_token = None):
 		api_id = api_id.split('>')[1].split('<')[0]
 		print(f'Получены данные: api_id = {api_id} | api_hash = {api_hash}')
 		return True, (api_id, api_hash)
+	elif not stel_token or not (stel_token and 'Create New application' in resp.text):
+		resp = ses.post('https://my.telegram.org/auth/send_password', headers=headers, data={'phone': phone})
+		if resp.text == 'Sorry, too many tries. Please try again later.':
+			print('Не удалось создать приложение из-за большого количества попыток входа')
+			return False, (123, '123')
+		random_hash = resp.json()['random_hash']
+		#print(f'Получил random_hash: {random_hash}')
 
-	resp = ses.post('https://my.telegram.org/auth/send_password', headers=headers, data={'phone': phone})
-	if resp.text == 'Sorry, too many tries. Please try again later.':
-		print('Не удалось создать приложение из-за большого количества попыток входа')
-		return False, (123, '123')
-	random_hash = resp.json()['random_hash']
-	#print(f'Получил random_hash: {random_hash}')
-
-	while True:
-		password = input(f'Введите отправленный код: ').strip()
-		try:
-			resp = ses.post('https://my.telegram.org/auth/login', headers=headers, data={'phone': phone,'random_hash': random_hash,'password': password})
-			#print(resp.headers)
-			if resp.text.lower() != 'true':
-				raise 'Invalid_code'
-			break
-		except:
-			print(f'Неверный код')
+		while True:
+			password = input(f'Введите отправленный код: ').strip()
+			try:
+				resp = ses.post('https://my.telegram.org/auth/login', headers=headers, data={'phone': phone,'random_hash': random_hash,'password': password})
+				stel_token = resp.headers['Set-Cookie'].split('stel_token=')[1].split(';')[0]
+				#print(resp.headers)
+				if resp.text.lower() != 'true':
+					raise 'Invalid_code'
+				break
+			except:
+				print(f'Неверный код')
 
 
 	# Проверяем наличие созданного приложение
@@ -123,31 +124,59 @@ def create_app(phone, stel_token = None):
 	
 	# Создаем приложение
 	hash = resp.text.split('name="hash" value="')[1].split('"')[0]
-	print(f'Получен hash: {hash}')
+	#print(f'Получен hash: {hash}')
 	
-	retry = 0
-	while retry < 3:
-		time.sleep(3)
-		print(f'Создаю приложение, попытка: {retry+1}')
-		resp = ses.post('https://my.telegram.org/apps/create', headers=headers, data={'hash': hash,'app_title': 'plowside','app_shortname': 'everything','app_url': 'my.telegram.org','app_platform': 'desktop','app_desc': ''})
+	time.sleep(3)
+	resp = ses.post('https://my.telegram.org/apps/create', headers=headers, data={'hash': hash,'app_title': 'plowside','app_shortname': 'everything','app_url': 'my.telegram.org','app_platform': 'desktop','app_desc': ''})
+	if resp.text == 'ERROR':
+		print('Не удалось создать приложение из-за большого количества созданных приложений, засыпаю на 5 минут')
+		time.sleep(300)
+		return create_app(phone, stel_token)
 
-		# Получаем api_id, api_hash
-		resp = ses.get('https://my.telegram.org/apps', headers=headers)
-		result = re.findall(r'this\.select\(\);">(.*)<', resp.text)
-		if len(result) == 2:
-			api_id, api_hash = result
-			api_id = api_id.split('>')[1].split('<')[0]
-			print(f'Получены данные: api_id = {api_id} | api_hash = {api_hash}')
-			return True, (api_id, api_hash)
+	# Получаем api_id, api_hash
+	resp = ses.get('https://my.telegram.org/apps', headers=headers)
+	result = re.findall(r'this\.select\(\);">(.*)<', resp.text)
+	if len(result) == 2:
+		api_id, api_hash = result
+		api_id = api_id.split('>')[1].split('<')[0]
+		print(f'Получены данные: api_id = {api_id} | api_hash = {api_hash}')
+		return True, (api_id, api_hash)
 
-	filename = f'resp_{time.time()}.txt'
-	open(filename, 'w', encoding='utf-8').write(resp.text)
-	print(f'Не удалось получить api_id и api_hash, ответ от сервера записан в {filename}')
+	#filename = f'resp_{time.time()}.txt'
+	#open(filename, 'w', encoding='utf-8').write(resp.text)
+	print(f'Не удалось получить api_id и api_hash')
 	return False, (123, '123')
 
 def run_telegram():
 	global telegram_process
 	telegram_process = subprocess.Popen(['Telegram_desktop/Telegram.exe'])
+
+
+
+
+
+
+
+
+
+if sessions_type['api_id_and_api_hash']:
+	for api_id, api_hash, phone, password in [x.split(':') for x in open('api_id_and_api_hash.txt', 'r', encoding='utf-8').read().splitlines()]:
+		client = TelegramClient('temp/temp_session', api_id, api_hash, system_lang_code='en', system_version='4.16.30-vxCUSTOM')
+		client.start(phone=phone if phone != '' else None, password=password if password != '' else None)
+		me = client.get_me()
+		client.session.save()
+		client.disconnect()
+		try:
+			os.rename('temp/temp_session.session', f'sessions/{me.id}.session')
+		except:
+			os.remove(f'sessions/{me.id}.session')
+			os.rename('temp/temp_session.session', f'sessions/{me.id}.session')
+		print(f'Сессия успешно создана\nФайл: {me.id}.session')
+		time.sleep(.5)
+		print('\n')
+
+
+
 
 if sessions_type['archives']:
 	archives = os.listdir('archives')
@@ -191,21 +220,5 @@ if sessions_type['archives']:
 			telegram_process.terminate()
 			telegram_process.wait()
 		except Exception as e: print(e)
-		time.sleep(.5)
-		print('\n')
-
-if sessions_type['api_id_and_api_hash']:
-	for phone, api_id, api_hash in [x.split(',') for x in open('api_id_and_api_hash.txt', 'r', encoding='utf-8').read().splitlines()]:
-		client = TelegramClient('temp/temp_session', api_id, api_hash, system_lang_code='en', system_version='4.16.30-vxCUSTOM')
-		client.start(phone=phone)
-		me = client.get_me()
-		client.session.save()
-		client.disconnect()
-		try:
-			os.rename('temp/temp_session.session', f'sessions/{me.id}.session')
-		except:
-			os.remove(f'sessions/{me.id}.session')
-			os.rename('temp/temp_session.session', f'sessions/{me.id}.session')
-		print(f'Сессия успешно создана\nФайл: {me.id}.session')
 		time.sleep(.5)
 		print('\n')

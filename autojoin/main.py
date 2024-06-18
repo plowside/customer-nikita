@@ -102,7 +102,7 @@ class ProxyManager:
 		futures = []
 		for proxy in list(self.proxies):
 			futures.append(self.proxy_check_(proxy))
-			await asyncio.gather(*futures)
+		await asyncio.gather(*futures)
 
 
 

@@ -1,5 +1,5 @@
 # -*- coding: UTF-8 -*-
-import telethon, logging, asyncio, sqlite3, httpx, socks, time
+import traceback, telethon, logging, asyncio, sqlite3, httpx, socks, time
 
 from telethon import TelegramClient, functions, events, types
 from telethon.tl.functions.messages import GetHistoryRequest, ImportChatInviteRequest, CheckChatInviteRequest, GetPeerDialogsRequest
@@ -85,7 +85,7 @@ class ProxyManager:
 		futures = []
 		for proxy in list(self.proxies):
 			futures.append(self.proxy_check_(proxy))
-			await asyncio.gather(*futures)
+		await asyncio.gather(*futures)
 
 class session_manager:
 	def __init__(self, session_path, targets):
@@ -222,13 +222,13 @@ class session_manager:
 								con.commit()
 								logging.info(f'[{channel_id}] Новая задача: {story.id}|story')
 						except Exception as e:
-							logging.error(f'[{channel_id}] Не удалось получить истории: {e}')
+							logging.error(f'[{channel_id}| LINE:{traceback.extract_tb(e.__traceback__)[-1].lineno}] Не удалось получить истории: {e}')
 						await asyncio.sleep(3)
 					last_story = time.time()
 
 
 				for (channel_id, channeld_id) in channels.items():
-					channel_tasks = cur.execute('SELECT * FROM channels_tasks WHERE channeld_id = ? AND status in (0, 1)', [channeld_id]).fetchall()
+					channel_tasks = cur.execute('SELECT * FROM channels_tasks WHERE channeld_id = ? AND status == 0', [channeld_id]).fetchall()
 					for channel_task in channel_tasks:
 						soc_proof_service = soc_proof_services.get(channel_task[3])
 						if not soc_proof_service or not soc_proof_service['enabled']:
@@ -248,7 +248,10 @@ class session_manager:
 						channel_actions = [(i, x) for i, x in enumerate(soc_proof_service['strategy']) if i not in channel_completed_actions_ids]
 						if len(channel_actions) == 0:
 							cur.execute('UPDATE channels_tasks SET status = 1 WHERE id = ?', [channel_task_id])
-							logging.info(f'[{channel_id}|{message_id}|{channel_action_id}] Накрутка завершена')
+							con.commit()
+							logging.info(f'[{channel_id}|{message_id}] Накрутка завершена')
+							continue
+
 						channel_action_id, channel_action = channel_actions[0]
 						if time.time() - last_action_unix < channel_action['time_before_start']:
 							continue
@@ -283,13 +286,13 @@ class session_manager:
 							await hclient.get(f'https://api.telegram.org/bot{bot_token}/sendMessage', params={'chat_id': log_chat_id, 'text': f'<b>✅ Накрутка запущена</b>\n├ ID канала: <code>{channel_id}</code>\n├ ID стратегии накрутки: <code>{channel_action_id}</code>\n├ Ссылка на цель: <b>{task_link}</b>\n└ Данные стратегии накрутки: <b>{channel_action}</b>', 'parse_mode': 'HTML', 'disable_web_page_preview': True})
 						if len(channel_actions) == 1:
 							cur.execute('UPDATE channels_tasks SET status = 1 WHERE id = ?', [channel_task_id])
-							logging.info(f'[{channel_id}|{message_id}|{channel_action_id}] Накрутка завершена')
-					con.commit()
+							con.commit()
+							logging.info(f'[{channel_id}|{message_id}] Накрутка завершена')
 			except rpcerrorlist.FloodWaitError:
-				logging.error(f'Во время поиска новых задач произошла ошибка: {e}')
+				logging.error(f'[LINE:{traceback.extract_tb(e.__traceback__)[-1].lineno}] Во время поиска новых задач произошла ошибка: {e}')
 				await asyncio.sleep(30)
 			except Exception as e:
-				logging.error(f'Во время поиска новых задач произошла ошибка: {e}')
+				logging.error(f'[LINE:{traceback.extract_tb(e.__traceback__)[-1].lineno}] Во время поиска новых задач произошла ошибка: {e}')
 			await asyncio.sleep(10)
 
 
