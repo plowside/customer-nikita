@@ -227,10 +227,24 @@ class sessions_manager:
 
 	# Выполнитель задач
 	async def tasks_watcher(self):
+		async with self.lock:
+			tasks = cur.execute('SELECT * FROM tasks WHERE task_status = ?', ['in_progress']).fetchall()
+		for task in tasks:
+			match task['task_type']:
+				case 'send_message':
+					task_data = json.loads(task['task_data'])
+					client = self.clients_id[task_data['from_user_id']]
+					await self.async_create_task(self.send_message(client, task['id'], task_data['to_user_id'], task_data['message_text'], task_data['message_id'] if task_data['answer_method'] == 'reply' else None))
+
+				case 'command':
+					task['task_data'] = json.loads(task['task_data'])
+					await self.async_create_task(self.task_executor(task))
+		await asyncio.sleep(10)
+
+
 		while True:
 			async with self.lock:
 				tasks = cur.execute('SELECT * FROM tasks WHERE task_status = ?', ['created']).fetchall()
-			self.tasks = []
 			for task in tasks:
 				match task['task_type']:
 					case 'send_message':
@@ -306,8 +320,9 @@ class sessions_manager:
 
 
 	async def task_executor(self, task):
-		cur.execute('UPDATE tasks SET task_status = ? WHERE id = ?', ['in_progress', task['id']])
-		con.commit()
+		async with self.lock:
+			cur.execute('UPDATE tasks SET task_status = ? WHERE id = ?', ['in_progress', task['id']])
+			con.commit()
 		task_data = task['task_data']
 		link = task_data['link']
 		task_id_text = f"{task_data['command']}|{task_data['message_id']}"
@@ -357,8 +372,9 @@ class sessions_manager:
 			except Exception as e:
 				logging.error(f'[{task_id_text}|{client_data.id} | LINE:{traceback.extract_tb(e.__traceback__)[-1].lineno}] Общая ошибка ({type(e)}): {e}\n{traceback.format_exc()}')
 
-		cur.execute('UPDATE tasks SET task_status = ? WHERE id = ?', ['completed' if task_completed else 'created', task['id']])
-		con.commit()
+		async with self.lock:
+			cur.execute('UPDATE tasks SET task_status = ? WHERE id = ?', ['completed' if task_completed else 'created', task['id']])
+			con.commit()
 
 	async def async_create_task(self, task):
 		asyncio.get_event_loop().create_task(task)
