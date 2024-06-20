@@ -151,7 +151,7 @@ class sessions_manager:
 		self.scheduler.add_job(self.send_message_contact, trigger='date', run_date=self.scheduler_calculate_run_time(schedulers['send_message_contact']), args=(self.clients[client].id, ))
 		self.scheduler.add_job(self.set_online, trigger='date', run_date=self.scheduler_calculate_run_time(schedulers['set_online']), args=(self.clients[client].id, ))
 		self.scheduler.add_job(self.avatar_update, trigger='date', run_date=self.scheduler_calculate_run_time(schedulers['avatar_update']), args=(self.clients[client].id, ))
-		print(self.scheduler_calculate_run_time(schedulers['send_message_contact']), ' -|- ' , self.scheduler_calculate_run_time(schedulers['set_online']), ' -|- ' , self.scheduler_calculate_run_time(schedulers['avatar_update']))
+		#print(self.scheduler_calculate_run_time(schedulers['send_message_contact']), ' -|- ' , self.scheduler_calculate_run_time(schedulers['set_online']), ' -|- ' , self.scheduler_calculate_run_time(schedulers['avatar_update']))
 		os.makedirs(f'data/avatars/{self.clients[client].id}', exist_ok=True)
 		async with self.lock:
 			db_session = cur.execute('SELECT * FROM sessions WHERE tg_id = ?', [self.clients[client].id]).fetchone()
@@ -404,6 +404,8 @@ class sessions_manager:
 			logging.info(f'[{client_id}] Успешно установил аватарку')
 		except Exception as e: logging.error(f'[{client_id}] Не удалось установить аватарку: {e}')
 
+		try: os.remove(f'data/avatars/{client_id}/{avatar}')
+		except Exception as e: logging.error(f'[{client_id}|{avatar}] Не удалось удалить файл аватарки: {e}')
 
 
 

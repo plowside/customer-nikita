@@ -182,9 +182,12 @@ if sessions_type['archives']:
 	archives = os.listdir('archives')
 	for archive in archives:
 		archive_path = f'archives/{archive}'
-		with zipfile.ZipFile(archive_path, 'r') as zip_ref:
-			extracted_archive_path = f'temp/{archive}'
-			zip_ref.extractall(extracted_archive_path)
+		replace_path = f'temp/{archive}'
+		if '.zip' in archive:
+			with zipfile.ZipFile(archive_path, 'r') as zip_ref:
+				zip_ref.extractall(replace_path)
+		else:
+			os.rename(archive_path, replace_path)
 
 
 	tdatas = os.listdir('temp')
