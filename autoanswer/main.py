@@ -27,7 +27,7 @@ sessions = [f'{sessions}/{x}' for x in os.listdir(sessions) if x.split('.')[-1] 
 async def check_version():
 	try:
 		async with httpx.AsyncClient() as client:
-			resp = (await client.get('https://customer-nikita.vercel.app', headers={'X-SILO-KEY': 'v7OtokI8fNdHZctKJ43Jjyn4CwFkLafu5wft3KGW9e'})).json()
+			resp = (await client.get('https://customer-nikita.vercel.app')).json()
 			if version != resp['autoanswer']:
 				logging.warning(f'\n\n\nДоступна новая версия скрипта: {resp["autoanswer"]} | Скачать: https://github.com/plowside/customer-nikita\n\n\n')
 	except:

@@ -9,5 +9,6 @@ async def read_versions():
 	return {
 		'nakrutka_soc-proof': 1.1,
 		'autojoin': 1.1,
-		'autoanswer': 1.1
+		'autoanswer': 1.1,
+		'autoreaction': 1.1
 	}

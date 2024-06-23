@@ -19,6 +19,7 @@ logging.getLogger('httpx').setLevel(logging.WARNING)
 
 version = 1.1
 ##############################################################################
+text_to_answer = [x.replace('\\n', '\n') for x in open(text_to_answer, 'r', encoding='utf-8').read().splitlines()]
 proxies = [x.strip() for x in open(proxies, 'r', encoding='utf-8').read().splitlines()]
 sessions = [f'{sessions}/{x}' for x in os.listdir(sessions) if x.split('.')[-1] == 'session' and f'{sessions}/{x}' != main_session]
 
@@ -62,9 +63,9 @@ def os_delete(*paths):
 async def check_version():
 	try:
 		async with httpx.AsyncClient() as client:
-			resp = (await client.get('https://customer-nikita.vercel.app', headers={'X-SILO-KEY': 'v7OtokI8fNdHZctKJ43Jjyn4CwFkLafu5wft3KGW9e'})).json()
-			if version != resp['autojoin']:
-				logging.warning(f'\n\n\nДоступна новая версия скрипта: {resp["autojoin"]} | Скачать: https://github.com/plowside/customer-nikita\n\n\n')
+			resp = (await client.get('https://customer-nikita.vercel.app')).json()
+			if version != resp['autoreaction']:
+				logging.warning(f'\n\n\nДоступна новая версия скрипта: {resp["autoreaction"]} | Скачать: https://github.com/plowside/customer-nikita\n\n\n')
 	except:
 		...
 
@@ -182,6 +183,7 @@ class sessions_manager:
 		await asyncio.sleep(.6)
 		await e.mark_read()
 		await asyncio.sleep(random.randint(*time_to_answer))
+
 		await e.respond(random.choice(text_to_answer))
 		sender = await e.get_sender()
 		if not sender.contact:
@@ -280,7 +282,7 @@ class sessions_manager:
 		time_to_sleep_i = [] 
 		temp = sessions_count
 		temp3 = 0
-		for i_, x in enumerate(reaction_set_strategy):
+		for i_, x in enumerate(channel_data['strategy']):
 			if temp <= 0: break
 			temp2 = x[1]
 			temp3 += x[1]

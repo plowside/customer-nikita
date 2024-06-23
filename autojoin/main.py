@@ -66,7 +66,7 @@ def os_delete(*paths):
 async def check_version():
 	try:
 		async with httpx.AsyncClient() as client:
-			resp = (await client.get('https://customer-nikita.vercel.app', headers={'X-SILO-KEY': 'v7OtokI8fNdHZctKJ43Jjyn4CwFkLafu5wft3KGW9e'})).json()
+			resp = (await client.get('https://customer-nikita.vercel.app')).json()
 			if version != resp['autojoin']:
 				logging.warning(f'\n\n\nДоступна новая версия скрипта: {resp["autojoin"]} | Скачать: https://github.com/plowside/customer-nikita\n\n\n')
 	except:
