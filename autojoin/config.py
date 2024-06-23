@@ -27,5 +27,7 @@ delays = {
 	'after_join__con': (4, 10),
 	'after_leave__discon': (0, 0),
 	'between_join_and_leave__allcon': (2, 2),
-	'online_time': (30, 70)
+	'online_time': (30, 70),
+	'online_before_message_read': (5, 3600),
+	'before_message_read': (2, 4)
 }

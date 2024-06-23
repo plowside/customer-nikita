@@ -178,10 +178,6 @@ class sessions_manager:
 				await e.mark_read()
 				logging.info(f'[{me.id}] Новый пост в {sender.id} был прочитан')
 			return
-		else:
-			await asyncio.sleep(.6)
-			await e.mark_read()
-		
 		message = e.message
 		async with httpx.AsyncClient() as aclient:
 			sender_url_v2 = f'**[{sender.first_name}]({sender.username}.t.me)** \\(`{sender.id}`\\)' if sender.username else f'**[{sender.first_name}](tg://user?id={sender.id})** \\(`{sender.id}`\\)'
@@ -196,6 +192,12 @@ class sessions_manager:
 					message_text = re.sub(r'([_\[\]()~>#+\-=|{}.!])', r'\\\1', message.message)
 					req = await aclient.post(f'https://api.telegram.org/bot{bot_token}/sendMessage', json={'chat_id': chat_id, 'text': f"*✉️ Новое сообщение*\n├ *Получатель:*  {me_url_v2}\n├ *Отправитель:*  {sender_url_html}\n└ *Контент сообщения:*\n{message_text}", 'parse_mode': 'MarkdownV2', 'link_preview_options': {'is_disabled': True}, 'reply_markup': {"inline_keyboard": [[{"text": "📨 Ответить", "callback_data": f"utils:answer:{me.id}:{sender.id}:{message.id}"}]]}})
 		logging.info(f'[{me.id}] Новое сообщение от {sender.id}')
+
+
+		await asyncio.sleep(random.randint(*delays['online_before_message_read']))
+		await client(functions.account.UpdateStatusRequest(offline=False))
+		await asyncio.sleep(random.randint(*delays['before_message_read']))
+		await e.mark_read()
 
 	# Хендлер нового сообщения через main_session
 	async def on_new_message_(self, client, e) -> None:
