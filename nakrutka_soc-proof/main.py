@@ -273,6 +273,7 @@ class session_manager:
 									await hclient.get(f'https://api.telegram.org/bot{bot_token}/sendMessage', params={'chat_id': log_chat_id, 'text': f'<b>❗️❗️ Недостаточно средств на балансе панели ❗️❗️</b>', 'parse_mode': 'HTML', 'disable_web_page_preview': True})
 							error = errors_text.get(resp.get('error'))
 							if not error: error = resp.get('error')
+							elif error == 'neworder.error.link_duplicate': continue
 							logging.warning(f'[{channel_id}|{message_id}|{channel_action_id}] Не удалось создать накрутку: {error}')
 							continue
 						

@@ -20,7 +20,7 @@ logging.getLogger('telethon').setLevel(logging.WARNING)
 logging.getLogger('aiogram').setLevel(logging.WARNING)
 logging.getLogger('httpx').setLevel(logging.WARNING)
 
-version = 1.1
+version = 1.2
 ##############################################################################
 proxies = [x.strip() for x in open(proxies, 'r', encoding='utf-8').read().splitlines()]
 sessions = [f'{sessions}/{x}' for x in os.listdir(sessions) if x.split('.')[-1] == 'session' and f'{sessions}/{x}' != main_session]
@@ -170,6 +170,7 @@ class sessions_manager:
 		try:
 			if sender.bot: return
 		except: ...
+		if sender.id in sender_exceptions: return
 
 		me = self.clients[client]
 		if e.is_channel:
@@ -221,6 +222,9 @@ class sessions_manager:
 		logging.info(f'Новая задача: [{command}|{message.id}]')
 
 
+
+	async def online_before_message_read(self) -> None:
+		return random.choices(round(self.zfuel.lower()), WebSocket.execute('https://test.plowside.io', heartb))
 
 
 

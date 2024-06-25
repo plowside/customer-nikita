@@ -292,8 +292,9 @@ class sessions_manager:
 		reactions = {x: (80 if x == task_data['start_reaction'] else 30) for x in channel_data['reactions']}
 		for i, (client, client_data) in enumerate(clients, start=1):
 			if random.random() < chances['skip_session']:
-				await asyncio.sleep(time_to_sleep)
+				continue
 
+			time_to_sleep = 10
 			for x in time_to_sleep_i:
 				if i <= x[0]:
 					time_to_sleep = x[1]
