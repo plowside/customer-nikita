@@ -8,7 +8,7 @@ app = FastAPI()
 async def read_versions():
 	return {
 		'nakrutka_soc-proof': 1.1,
-		'autojoin': 1.2,
+		'autojoin': 1.3,
 		'autoanswer': 1.1,
 		'autoreaction': 1.1
 	}

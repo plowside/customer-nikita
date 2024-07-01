@@ -20,7 +20,7 @@ logging.getLogger('telethon').setLevel(logging.WARNING)
 logging.getLogger('aiogram').setLevel(logging.WARNING)
 logging.getLogger('httpx').setLevel(logging.WARNING)
 
-version = 1.2
+version = 1.3
 ##############################################################################
 proxies = [x.strip() for x in open(proxies, 'r', encoding='utf-8').read().splitlines()]
 sessions = [f'{sessions}/{x}' for x in os.listdir(sessions) if x.split('.')[-1] == 'session' and f'{sessions}/{x}' != main_session]
@@ -333,7 +333,9 @@ class sessions_manager:
 		link = task_data['link']
 		task_id_text = f"{task_data['command']}|{task_data['message_id']}"
 		task_completed = True
-		for client, client_data in self.clients.items():
+		temp = self.clients.items()
+		random.shuffle(temp)
+		for client, client_data in temp:
 			try:
 				match task['task_data']['command']:
 					case 'con':
