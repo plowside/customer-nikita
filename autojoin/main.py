@@ -333,7 +333,7 @@ class sessions_manager:
 		link = task_data['link']
 		task_id_text = f"{task_data['command']}|{task_data['message_id']}"
 		task_completed = True
-		temp = self.clients.items()
+		temp = list(self.clients.items())
 		random.shuffle(temp)
 		for client, client_data in temp:
 			try:
