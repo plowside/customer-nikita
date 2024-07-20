@@ -14,15 +14,23 @@ sessions_avatars = 'data/avatars' # Путь до аватарок сессий
 
 sender_exceptions = [777000] # тг ID пользователей, от которых не принимать сообщения
 
+# Количество сессий в процентах для выполнения команды.
+sessions_to_exec = {
+	'con': (80, 100),
+	'discon': (50, 60),
+	'allcon': (50, 70),
+}
 # Планировщики задач (Постоянно выполняют определенную задачу с определенным промежутком по времени)
 schedulers = {
 	'send_message_contact': {'days': (0, 0), 'hours': (12, 12), 'minutes': (0, 0), 'seconds': (0, 0)},
 	'set_online': {'days': (0, 0), 'hours': (2, 4), 'minutes': (0, 5), 'seconds': (0, 0)},
 	'avatar_update': {'days': (2, 2), 'hours': (0, 0), 'minutes': (0, 0), 'seconds': (0, 0)},
+	'leave_channel': {'days': (0, 0), 'hours': (0, 10), 'minutes': (0, 60), 'seconds': (0, 60)}
 }
 # Шансы для выполнения действия
 chances = {
 	'read_new_post': 20,
+	'session_will_leave': 15
 }
 # Задержки до\после действий (before — до | after — после)
 delays = {

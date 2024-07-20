@@ -32,6 +32,7 @@ cur.execute('''CREATE TABLE IF NOT EXISTS tasks(
 	task_type TEXT,
 	task_data TEXT,
 	task_status TEXT,
+	task_url TEXT,
 	unix INTEGER
 )''')
 #################################################################################################################################

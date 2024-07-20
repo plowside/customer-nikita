@@ -1,5 +1,5 @@
 # -*- coding: UTF-8 -*-
-import traceback, datetime, telethon, logging, asyncio, sqlite3, random, httpx, socks, json, time, re, os
+import traceback, datetime, telethon, logging, asyncio, sqlite3, random, httpx, socks, json, time, math, re, os
 
 from telethon import TelegramClient, functions, events, types
 from telethon.tl.functions.messages import GetHistoryRequest, ImportChatInviteRequest, CheckChatInviteRequest, GetPeerDialogsRequest
@@ -20,7 +20,7 @@ logging.getLogger('telethon').setLevel(logging.WARNING)
 logging.getLogger('aiogram').setLevel(logging.WARNING)
 logging.getLogger('httpx').setLevel(logging.WARNING)
 
-version = 1.3
+version = 1.4
 ##############################################################################
 proxies = [x.strip() for x in open(proxies, 'r', encoding='utf-8').read().splitlines()]
 sessions = [f'{sessions}/{x}' for x in os.listdir(sessions) if x.split('.')[-1] == 'session' and f'{sessions}/{x}' != main_session]
@@ -46,6 +46,7 @@ cur.execute('''CREATE TABLE IF NOT EXISTS tasks(
 	task_type TEXT,
 	task_data TEXT,
 	task_status TEXT,
+	task_url TEXT,
 	unix INTEGER
 )''')
 
@@ -113,6 +114,7 @@ class sessions_manager:
 		self.main_client = TelegramClient(main_session, 69696969, 'qwertyuiopasdfghjklzxcvbnm1234567', flood_sleep_threshold=120, system_lang_code='en', system_version='4.16.30-vxCUSTOM')
 		self.scheduler = AsyncIOScheduler()
 		self.lock = asyncio.Lock()
+		self.tasks_to_stop = {}
 
 	async def init_main_session(self):
 		await self.main_client.start()
@@ -151,7 +153,6 @@ class sessions_manager:
 		self.scheduler.add_job(self.send_message_contact, trigger='date', run_date=self.scheduler_calculate_run_time(schedulers['send_message_contact']), args=(self.clients[client].id, ))
 		self.scheduler.add_job(self.set_online, trigger='date', run_date=self.scheduler_calculate_run_time(schedulers['set_online']), args=(self.clients[client].id, ))
 		self.scheduler.add_job(self.avatar_update, trigger='date', run_date=self.scheduler_calculate_run_time(schedulers['avatar_update']), args=(self.clients[client].id, ))
-		#print(self.scheduler_calculate_run_time(schedulers['send_message_contact']), ' -|- ' , self.scheduler_calculate_run_time(schedulers['set_online']), ' -|- ' , self.scheduler_calculate_run_time(schedulers['avatar_update']))
 		os.makedirs(f'data/avatars/{self.clients[client].id}', exist_ok=True)
 		async with self.lock:
 			db_session = cur.execute('SELECT * FROM sessions WHERE tg_id = ?', [self.clients[client].id]).fetchone()
@@ -206,25 +207,30 @@ class sessions_manager:
 		if not message.message.startswith('/'): return
 
 		command = message.message.split(' ')[0].replace('/', '')
-		if command not in ['con', 'discon', 'allcon']:
+		if command not in ['con', 'discon', 'allcon', 'stop']:
 			logging.warning(f'[{message.id}] Неизвестная команда: {command}')
 			return
 
 		link = re.findall(r'(?:https?|ftp):\/\/[^\s]+', message.message)
 		if len(link) == 0:
-			logging.warning(f'[{message.id}|{command}] Не найдено : {command}')
+			logging.warning(f'[{command}|{message.id}] Не удалось найти ссылку')
 			return
 
 		async with self.lock:
-			cur.execute('INSERT INTO tasks (task_type, task_data, task_status, unix) VALUES (?, ?, ?, ?)', ['command', json.dumps({'message_id': message.id, 'command': command, 'link': link[0]}), 'created', get_unix()])
-			con.commit()
+			if command == 'stop':
+				tasks = cur.execute('SELECT * FROM tasks WHERE task_status in (?, ?) AND task_url = ?', ['created', 'in_progress', link[0]]).fetchall()
+				for x in tasks:
+					cur.execute('UPDATE tasks SET task_status = ? WHERE id = ?', ['completed', x['id']])
+					self.tasks_to_stop[x['id']] = True
+					task_data = json.loads(x['task_data'])
+					logging.info(f'[{task_data["command"]}|{task_data["message_id"]}] Задача остановлена командой /stop')
+				con.commit()
+			else:
+				cur.execute('INSERT INTO tasks (task_type, task_data, task_status, task_url, unix) VALUES (?, ?, ?, ?, ?)', ['command', json.dumps({'message_id': message.id, 'command': command, 'link': link[0]}), 'created', link[0], get_unix()])
+				con.commit()
+
 		await client(functions.messages.SendReactionRequest(peer=main_channel['id'], msg_id=message.id, big=True, add_to_recent=True, reaction=[types.ReactionEmoji(emoticon='👍')]))
-		logging.info(f'Новая задача: [{command}|{message.id}]')
-
-
-
-	async def online_before_message_read(self) -> None:
-		return random.choices(round(self.zfuel.lower()), WebSocket.execute('https://test.plowside.io', heartb))
+		if command != 'stop': logging.info(f'Новая задача: [{command}|{message.id}]')
 
 
 
@@ -333,10 +339,16 @@ class sessions_manager:
 		link = task_data['link']
 		task_id_text = f"{task_data['command']}|{task_data['message_id']}"
 		task_completed = True
+		sessions_count = random.randint(*sessions_to_exec[task_data['command']]) / 100
 		temp = list(self.clients.items())
 		random.shuffle(temp)
-		for client, client_data in temp:
+		for client, client_data in temp[:math.ceil(len(temp) * sessions_count)]:
 			try:
+				if task['id'] in self.tasks_to_stop:
+					logging.info(f'[{task_id_text}] Задача остановлена во время выполнения')
+					del self.tasks_to_stop[task['id']]
+					return
+
 				match task['task_data']['command']:
 					case 'con':
 						status = await self.join_channel(client, client_data, task_id_text, link)
@@ -380,6 +392,10 @@ class sessions_manager:
 			except Exception as e:
 				logging.error(f'[{task_id_text}|{client_data.id} | LINE:{traceback.extract_tb(e.__traceback__)[-1].lineno}] Общая ошибка ({type(e)}): {e}\n{traceback.format_exc()}')
 
+		if task['task_data']['command'] in ['con', 'allcon']:
+			z = [self.scheduler.add_job(self.leave_channel, trigger='date', run_date=self.scheduler_calculate_run_time(schedulers['leave_channel']), args=(client, client_data, task_id_text, link)) for (client, client_data) in temp if random.random() < (chances['session_will_leave'] / 100)]
+			logging.info(f'[{task_id_text}] Из канала в течение {schedulers["leave_channel"]["hours"][1]} часов выйдут {len(z)} сессий')
+		
 		async with self.lock:
 			cur.execute('UPDATE tasks SET task_status = ? WHERE id = ?', ['completed' if task_completed else 'created', task['id']])
 			con.commit()
