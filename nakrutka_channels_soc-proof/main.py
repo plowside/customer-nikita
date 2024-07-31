@@ -1,5 +1,5 @@
 # -*- coding: UTF-8 -*-
-import traceback, sqlite3, logging, asyncio, httpx, socks, time
+import traceback, sqlite3, logging, asyncio, httpx, socks, time, random, copy
 
 from config import *
 from tg_bot import main as tg_bot_func
@@ -79,15 +79,16 @@ class session_manager:
 		last_story = time.time()
 		while True:
 			try:
-				channels = dict(self.channels)
+				channels = copy.deepcopy(self.channels)
 				for (channel_id, channeld_id) in channels.items():
+					zxc = copy.deepcopy(target_channels_strategy)
 					channel_tasks = cur.execute('SELECT * FROM channels_tasks WHERE channeld_id = ? AND status == 0', [channeld_id]).fetchall()
 					for channel_task in channel_tasks:
 						soc_proof_service = soc_proof_services.get(channel_task[2])
 						if not soc_proof_service or not soc_proof_service['enabled']:
 							continue
 						soc_proof_service_id = soc_proof_service['service_id']
-						soc_proof_service = target_channels_strategy[channel_id][channel_task[2]]
+						soc_proof_service = zxc[channel_id][channel_task[2]]
 						task_link = channel_task[3]
 						channel_task_id = channel_task[0]
 						channel_completed_actions = cur.execute('SELECT * FROM channels_actions WHERE channel_task_id = ? ORDER BY unix ASC', [channel_task_id]).fetchall()
@@ -101,11 +102,11 @@ class session_manager:
 							con.commit()
 							logging.info(f'[{channel_id}] Накрутка завершена')
 							continue
-
 						channel_action_id, channel_action = channel_actions[0]
+						channel_action['time_before_start'] = random.randint(*channel_action['time_before_start'])
+						channel_action['count'] = random.randint(*channel_action['count'])
 						if time.time() - last_action_unix < channel_action['time_before_start']:
 							continue
-
 						async with httpx.AsyncClient(timeout=180) as hclient:
 							resp = (await hclient.post('https://partner.soc-proof.su/api/v2', json={'key': soc_proof_api_token, 'action': 'add', 'service': soc_proof_service_id, 'quantity': channel_action['count'], 'link': task_link})).json()
 						
