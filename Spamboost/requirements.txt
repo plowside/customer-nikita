@@ -1,0 +1,5 @@
+pysocks
+telethon
+aiofiles
+aiogram
+httpx

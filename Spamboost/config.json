@@ -1,0 +1,225 @@
+{
+    "path_sessions": "data/\u0441\u0435\u0441\u0441\u0438\u0438",
+    "path_sessions_spamblock": "data/spam_block",
+    "path_avatars": "data/\u0430\u0432\u0430\u0442\u0430\u0440\u043a\u0438",
+    "path_channels_avatars": "data/\u0430\u0432\u0430\u0442\u0430\u0440\u043a\u0438_\u043a\u0430\u043d\u0430\u043b\u044b",
+    "path_names": "data/\u0438\u043c\u0435\u043d\u0430.txt",
+    "path_surnames": "data/\u0444\u0430\u043c\u0438\u043b\u0438\u0438.txt",
+    "path_bio": "data/\u041e\u0431\u043e \u043c\u043d\u0435.txt",
+    "path_chatlists": "data/\u0421\u0441\u044b\u043b\u043a\u0438 \u043d\u0430 \u0447\u0430\u0442\u043b\u0438\u0441\u0442\u044b.txt",
+    "bot_token": "7291518229:AAE5Hsjib9geg5F_OzQPU43Xe3-SLp1SnyQ",
+    "admin_ids": [
+        5892870427,
+        1488282589
+    ],
+    "notify_user_id": -1002213862488,
+    "proxy": "62.109.29.75:17450:modeler_7aCcgA:EphR4X26GQS0",
+    "mode": {
+        "invite_to": false,
+        "channels": true,
+        "stories": false,
+        "dm": false
+    },
+    "check_mode": {
+        "\u041a\u0430\u043d\u0430\u043b\u044b": true,
+        "\u0427\u0430\u0442\u044b": true,
+        "\u041b\u0438\u0447\u043d\u044b\u0435 \u0441\u043e\u043e\u0431\u0449\u0435\u043d\u0438\u044f": false
+    },
+    "to_change": {
+        "avatar": false,
+        "name_surname": false,
+        "bio": false,
+        "chatlists": false,
+        "self_channel": false,
+        "disable_notify": false
+    },
+    "to_delete": {
+        "previous_avatars": false,
+        "chatlists": false
+    },
+    "spam_block": {
+        "notify": true,
+        "advanced_check": true,
+        "replace_session": true
+    },
+    "self_channel": {
+        "title": "LUCKYBANANA5894",
+        "about": "LUCKYBANANA5894's channel",
+        "avatar": false,
+        "username": {
+            "length": 15,
+            "symbols": "abcdefghijklmnopqrstuvwxyz"
+        },
+        "forward_enabled": false,
+        "forward_from_username": "uikw23g4eruyf8itgbq2w38iryogb",
+        "forward_from_message_id": 194
+    },
+    "channels|dm": {
+        "generate_text": false,
+        "openai_api_key": null,
+        "gpt_dialog_story": [
+            {
+                "role": "system",
+                "content": "\u0422\u044b \u0434\u0435\u0432\u0443\u0448\u043a\u0430. \u0418 \u043f\u0438\u0448\u0435\u0448 \u043a\u0440\u0430\u0442\u043a\u043e, \u0434\u043e 11 \u0441\u043b\u043e\u0432."
+            }
+        ],
+        "gpt_not_working_answer_variants": [
+            {
+                "id": 5289586317645077510,
+                "access_hash": 7245844214166698113
+            },
+            {
+                "id": 5289511688293338831,
+                "access_hash": 1137509983462803804
+            },
+            {
+                "id": 5289535491002096295,
+                "access_hash": -3061125516054875403
+            },
+            {
+                "id": 5289588898920419145,
+                "access_hash": 3573321663229533686
+            },
+            {
+                "id": 5289906434442550104,
+                "access_hash": 4924521636611331134
+            },
+            {
+                "id": 5289879955969169162,
+                "access_hash": 6310489662076477707
+            },
+            {
+                "id": 5289796083847811471,
+                "access_hash": 8295482215025586400
+            },
+            {
+                "id": 5289764408464004031,
+                "access_hash": -2803425084711759046
+            },
+            {
+                "id": 5289702977546770586,
+                "access_hash": -510216593859876423
+            },
+            {
+                "id": 5289989194167378432,
+                "access_hash": 7268345685988666182
+            },
+            {
+                "id": 5289886505794293950,
+                "access_hash": -964833228214339290
+            },
+            {
+                "id": 5289536766607385266,
+                "access_hash": -6456463453854177141
+            },
+            {
+                "id": 5289986514107783641,
+                "access_hash": -3900350503390658286
+            },
+            {
+                "id": 5289765168673216333,
+                "access_hash": 9222618895651619720
+            },
+            {
+                "id": 5289633957422323878,
+                "access_hash": -7568303907346536467
+            },
+            "\u0420\u0410\u0411\u041e\u0422\u0410\u0415\u041c",
+            "\u0420\u0410\u0411\u041e\u0422\u0410\u0415\u041c.",
+            "\u0413\u0440\u0438\u043d\u0434.",
+            "\u0413\u0420\u0418\u041d\u0414.",
+            "\u0411\u0430\u0437\u0430",
+            "\u0411\u0410\u0417\u0410",
+            "\u0433\u0440\u0438\u043d\u0434\u0438\u043c",
+            "\u043a\u0430\u0439\u0444"
+        ],
+        "time_before_message": [
+            10,
+            120
+        ],
+        "default_message": [
+            {
+                "id": 5289586317645077510,
+                "access_hash": 7245844214166698113
+            },
+            {
+                "id": 5289511688293338831,
+                "access_hash": 1137509983462803804
+            },
+            {
+                "id": 5289535491002096295,
+                "access_hash": -3061125516054875403
+            },
+            {
+                "id": 5289588898920419145,
+                "access_hash": 3573321663229533686
+            },
+            {
+                "id": 5289906434442550104,
+                "access_hash": 4924521636611331134
+            },
+            {
+                "id": 5289879955969169162,
+                "access_hash": 6310489662076477707
+            },
+            {
+                "id": 5289796083847811471,
+                "access_hash": 8295482215025586400
+            },
+            {
+                "id": 5289764408464004031,
+                "access_hash": -2803425084711759046
+            },
+            {
+                "id": 5289702977546770586,
+                "access_hash": -510216593859876423
+            },
+            {
+                "id": 5289989194167378432,
+                "access_hash": 7268345685988666182
+            },
+            {
+                "id": 5289886505794293950,
+                "access_hash": -964833228214339290
+            },
+            {
+                "id": 5289536766607385266,
+                "access_hash": -6456463453854177141
+            },
+            {
+                "id": 5289986514107783641,
+                "access_hash": -3900350503390658286
+            },
+            {
+                "id": 5289765168673216333,
+                "access_hash": 9222618895651619720
+            },
+            {
+                "id": 5289633957422323878,
+                "access_hash": -7568303907346536467
+            },
+            "\u0420\u0410\u0411\u041e\u0422\u0410\u0415\u041c",
+            "\u0420\u0410\u0411\u041e\u0422\u0410\u0415\u041c.",
+            "\u0413\u0440\u0438\u043d\u0434.",
+            "\u0413\u0420\u0418\u041d\u0414.",
+            "\u0411\u0430\u0437\u0430",
+            "\u0411\u0410\u0417\u0410",
+            "\u0433\u0440\u0438\u043d\u0434\u0438\u043c",
+            "\u043a\u0430\u0439\u0444"
+        ],
+        "spam_channels": {}
+    },
+    "stories": {
+        "parse_chats": [],
+        "enable_likes": true
+    },
+    "invite_to": {
+        "parse_invites": [
+            "Your Channel Name"
+        ],
+        "parse_chats": [
+            "\u0442\u0443\u0440\u0442\u043b\u0435\u0438\u043d\u0441\u0443\u0438\u0442(\u043c\u0443\u0444\u043b\u043e\u043d\u044b)",
+            "\u0442\u0443\u0440\u0442\u043b\u0435\u0438\u043d\u0441\u0443\u0438\u0442(\u043c\u0443\u0444\u043b\u043e\u043d\u044b)2"
+        ]
+    }
+}

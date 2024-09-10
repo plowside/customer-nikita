@@ -1,0 +1,4 @@
+pysocks
+telethon
+httpx
+g4f

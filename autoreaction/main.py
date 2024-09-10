@@ -168,12 +168,14 @@ class sessions_manager:
 		if not str(channel_id).startswith('-100'): channel_id = int(f'-100{channel_id}')
 		reaction = random.choice(channels[channel_id]['reactions'])
 	
-		async with self.lock:
-			cur.execute('INSERT INTO tasks (task_type, task_data, task_status, unix) VALUES (?, ?, ?, ?)', ['set_reaction', json.dumps({'channel_id': channel_id, 'message_id': message.id, 'link': f"{channels[channel_id]['link']}", 'start_reaction': reaction}), 'created', get_unix()])
-			con.commit()
-	
-		await client(functions.messages.SendReactionRequest(peer=channel_id, msg_id=message.id, big=True, add_to_recent=True, reaction=[types.ReactionCustomEmoji(int(reaction)) if reaction.isnumeric() else types.ReactionEmoji(reaction)]))
-		logging.info(f'Новая задача: [{channel_id}|{message.id}]')
+		try:
+			await client(functions.messages.SendReactionRequest(peer=channel_id, msg_id=message.id, big=True, add_to_recent=True, reaction=[types.ReactionCustomEmoji(int(reaction)) if reaction.isnumeric() else types.ReactionEmoji(reaction)]))
+			async with self.lock:
+				cur.execute('INSERT INTO tasks (task_type, task_data, task_status, unix) VALUES (?, ?, ?, ?)', ['set_reaction', json.dumps({'channel_id': channel_id, 'message_id': message.id, 'link': f"{channels[channel_id]['link']}", 'start_reaction': reaction}), 'created', get_unix()])
+				con.commit()
+		
+			logging.info(f'Новая задача: [{channel_id}|{message.id}]')
+		except: logging.info(f'Не удалось создать задачу (не ставится реакция): [{channel_id}|{message.id}]')
 
 
 
@@ -307,6 +309,8 @@ class sessions_manager:
 				logging.info(f'[{task_id_text}|{client_data.id}] Антифлуд')
 			except rpcerrorlist.ChannelPrivateError:
 				logging.error(f'[{task_id_text}|{client_data.id}] Канал приватный либо пользователь заблокирован в нём')
+			except ConnectionError:
+				logging.error(f'[{task_id_text}|{client_data.id}] Сессия отключена от серверов тг')
 			except Exception as e:
 				logging.error(f'[{task_id_text}|{client_data.id} | LINE:{traceback.extract_tb(e.__traceback__)[-1].lineno}] Общая ошибка ({type(e)}): {e}\n{traceback.format_exc()}')
 			
