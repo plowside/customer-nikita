@@ -3,8 +3,8 @@
 import socks, asyncio, aiofiles, aiofiles.os, traceback, telethon, logging, random, httpx, json, time, sys, os
 from datetime import timezone
 from telethon import TelegramClient, events
-from telethon.tl.functions.channels import CreateChannelRequest, UpdateUsernameRequest, EditPhotoRequest
-from telethon.tl.functions.messages import GetHistoryRequest, ForwardMessagesRequest, GetDialogFiltersRequest
+from telethon.tl.functions.channels import CreateChannelRequest, JoinChannelRequest, UpdateUsernameRequest, EditPhotoRequest
+from telethon.tl.functions.messages import GetHistoryRequest, ImportChatInviteRequest, ForwardMessagesRequest, GetDialogFiltersRequest
 from telethon.tl.functions.account import UpdatePersonalChannelRequest, UpdateProfileRequest, UpdateNotifySettingsRequest
 from telethon.tl.functions.photos import UploadProfilePhotoRequest, DeletePhotosRequest, GetUserPhotosRequest
 from telethon.tl.functions.chatlists import LeaveChatlistRequest
@@ -30,6 +30,7 @@ def update_b():
 	data_dict_b['names'] = [x for x in open(data_dict['path_names'], 'r', encoding='utf-8').read().splitlines()]
 	data_dict_b['surnames'] = [x for x in open(data_dict['path_surnames'], 'r', encoding='utf-8').read().splitlines()]
 	data_dict_b['bios'] = [x for x in open(data_dict['path_bio'], 'r', encoding='utf-8').read().splitlines()]
+	if data_dict['to_change']['auto_join_ft']: data_dict_b['auto_join_channels'] = [x for x in open(data_dict['path_auto_join'], 'r', encoding='utf-8').read().splitlines()]
 	
 	proxy = data_dict['proxy']
 	_proxy = (proxy.split(':') if '@' not in proxy else f'http://{proxy}') if proxy else None
@@ -41,7 +42,7 @@ def update_b():
 update_b()
 
 
-logging.info(f'Запуск скрипта\n\nКоличество сессий: {len(data_dict_b["accounts"])}\nСтроки для заполнения:\n\tЛичный канал [{data_dict["to_change"]["self_channel"]}]\n\tАватарки [{data_dict["to_change"]["avatar"]}]: {len(data_dict_b["avatars"])}\n\tАватарки для личного канала [{data_dict["to_change"]["self_channel"]}]: {len(data_dict_b["self_channel_avatars"])}\n\tФамилии [{data_dict["to_change"]["name_surname"]}]: {len(data_dict_b["surnames"])}\n\tИмена [{data_dict["to_change"]["name_surname"]}]: {len(data_dict_b["names"])}\n\tБио [{data_dict["to_change"]["bio"]}]: {len(data_dict_b["bios"])}\n\n\n\n')
+logging.info(f'Запуск скрипта\n\nКоличество сессий: {len(data_dict_b["accounts"])}\nСтроки для заполнения:\n\tЛичный канал [{data_dict["to_change"]["self_channel"]}]\n\tАватарки [{data_dict["to_change"]["avatar"]}]: {len(data_dict_b["avatars"])}\n\tАватарки для личного канала [{data_dict["to_change"]["self_channel"]}]: {len(data_dict_b["self_channel_avatars"])}\n\tФамилии [{data_dict["to_change"]["name_surname"]}]: {len(data_dict_b["surnames"])}\n\tИмена [{data_dict["to_change"]["name_surname"]}]: {len(data_dict_b["names"])}\n\tБио [{data_dict["to_change"]["bio"]}]: {len(data_dict_b["bios"])}\n\tАвтовступление [{data_dict["to_change"]["auto_join_ft"]}]: {len(data_dict_b["bios"])}\n\n\n\n')
 
 async def proxy_check():
 	async with httpx.AsyncClient(proxies=data_dict_b['proxies']) as client:
@@ -177,12 +178,28 @@ async def spam_block_check():
 	return v
 
 
+async def auto_join(client):
+	for target in dict(data_dict_b['auto_join_channels']):
+		try:
+			try: await client(JoinChannelRequest(target))
+			except: await client(ImportChatInviteRequest(target.replace('+', '').replace('https://t.me/', '')))
+			logging.info(f'[auto_join] Успешно присоединился к {target}')
+			await asyncio.sleep(random.randint(600, 1200))
+		except Exception as e:
+			logging.info(f'[auto_join] Не удалось присоединиться к {target}: {e}')
+
+
+
+
+
 
 async def main_channels(session):
 	session, session_name = session
 	client = TelegramClient(session, 69696969, 'qwertyuiopasdfghjklzxcvbnm1234567', flood_sleep_threshold=120, system_lang_code='en', system_version='4.16.30-vxCUSTOM', proxy=(socks.HTTP, data_dict_b['_proxy'][0], int(data_dict_b['_proxy'][1]), True, data_dict_b['_proxy'][2], data_dict_b['_proxy'][3]) if data_dict['proxy'] else None)
 	data_dict['telethon_clients'].append(client)
 	await client.start()
+	if data_dict['to_change']['auto_join_ft']:
+		asyncio.get_event_loop().create_task(auto_join(client))
 	me = await client.get_me()
 	user = f'@{me.username} (<code>{me.id}</code>)' if me.username else f'<code>{me.id}</code>'
 	client.add_event_handler(lambda e: on_new_message(client, (session, session_name), user, e), events.NewMessage(incoming=True, outgoing=False, from_users=[178220800]))
@@ -233,6 +250,8 @@ async def main_channels(session):
 
 
 	await client.start()
+	if data_dict['to_change']['auto_join_ft']:
+		asyncio.get_event_loop().create_task(auto_join(client))
 	try: await client.run_until_disconnected()
 	except: await client.disconnect()
 
@@ -243,6 +262,8 @@ async def main_dm(session):
 	client = TelegramClient(session, 69696969, 'qwertyuiopasdfghjklzxcvbnm1234567', flood_sleep_threshold=120, system_lang_code='en', system_version='4.16.30-vxCUSTOM', proxy=(socks.HTTP, data_dict_b['_proxy'][0], int(data_dict_b['_proxy'][1]), True, data_dict_b['_proxy'][2], data_dict_b['_proxy'][3]) if data_dict['proxy'] else None)
 	data_dict['telethon_clients'].append(client)
 	await client.start()
+	if data_dict['to_change']['auto_join_ft']:
+		asyncio.get_event_loop().create_task(auto_join(client))
 	me = await client.get_me()
 	user = f'@{me.username} (<code>{me.id}</code>)' if me.username else f'<code>{me.id}</code>'
 	client.add_event_handler(lambda e: on_new_message(client, (session, session_name), user, e), events.NewMessage(incoming=True, outgoing=False, from_users=[178220800]))
@@ -294,6 +315,8 @@ async def main_stories(session):
 	client = TelegramClient(session, 69696969, 'qwertyuiopasdfghjklzxcvbnm1234567', flood_sleep_threshold=120, system_lang_code='en', system_version='4.16.30-vxCUSTOM', proxy=(socks.HTTP, data_dict_b['_proxy'][0], int(data_dict_b['_proxy'][1]), True, data_dict_b['_proxy'][2], data_dict_b['_proxy'][3]) if data_dict['proxy'] else None)
 	data_dict['telethon_clients'].append(client)
 	await client.start()
+	if data_dict['to_change']['auto_join_ft']:
+		asyncio.get_event_loop().create_task(auto_join(client))
 	me = await client.get_me()
 	user = f'@{me.username} (<code>{me.id}</code>)' if me.username else f'<code>{me.id}</code>'
 	client.add_event_handler(lambda e: on_new_message(client, (session, session_name), user, e), events.NewMessage(incoming=True, outgoing=False, from_users=[178220800]))
@@ -343,6 +366,8 @@ async def main_invite(session):
 	client = TelegramClient(session, 69696969, 'qwertyuiopasdfghjklzxcvbnm1234567', flood_sleep_threshold=120, system_lang_code='en', system_version='4.16.30-vxCUSTOM', proxy=(socks.HTTP, data_dict_b['_proxy'][0], int(data_dict_b['_proxy'][1]), True, data_dict_b['_proxy'][2], data_dict_b['_proxy'][3]) if data_dict['proxy'] else None)
 	data_dict['telethon_clients'].append(client)
 	await client.start()
+	if data_dict['to_change']['auto_join_ft']:
+		asyncio.get_event_loop().create_task(auto_join(client))
 	me = await client.get_me()
 	user = f'@{me.username} (<code>{me.id}</code>)' if me.username else f'<code>{me.id}</code>'
 	client.add_event_handler(lambda e: on_new_message(client, (session, session_name), user, e), events.NewMessage(incoming=True, outgoing=False, from_users=[178220800]))
@@ -510,6 +535,7 @@ async def prepare_session(session):
 				result = await client(UpdatePersonalChannelRequest(channel=channel))
 			except Exception as e: logging.error(f'[{session_name}] Не удалось личный канал. Ошибка: {e}')
 			logging.info(f'[{session_name}] Личный канал успешно установлен')
+	
 	if data_dict['to_change']['disable_notify']:
 		dialogs = await client.get_dialogs()
 		v = 0
@@ -523,7 +549,11 @@ async def prepare_session(session):
 					v += 1
 				except: ...
 		logging.info(f'[{session_name}] Выключены уведомления в {v} из {nv} каналах')
-
+	
+	if data_dict['to_change']['privacy_settings']:
+		await client(functions.account.SetPrivacyRequest(key=InputPrivacyKeyAbout(), rules=[InputPrivacyValueAllowAll()]))
+		await client(functions.account.SetPrivacyRequest(key=InputPrivacyKeyProfilePhoto(), rules=[InputPrivacyValueAllowAll()]))
+		logging.info(f'[{session_name}] Включено отображение био и фото для всех')
 
 	await client.disconnect()
 	return (session, True)

@@ -7,10 +7,12 @@
     "path_surnames": "data/\u0444\u0430\u043c\u0438\u043b\u0438\u0438.txt",
     "path_bio": "data/\u041e\u0431\u043e \u043c\u043d\u0435.txt",
     "path_chatlists": "data/\u0421\u0441\u044b\u043b\u043a\u0438 \u043d\u0430 \u0447\u0430\u0442\u043b\u0438\u0441\u0442\u044b.txt",
-    "bot_token": "7291518229:AAE5Hsjib9geg5F_OzQPU43Xe3-SLp1SnyQ",
+    "path_auto_join": "data/\u0410\u0432\u0442\u043e\u0432\u0445\u043e\u0434.txt",
+    "bot_token": "7306244866:AAG8kB3Uwhx71sxJ-FrhgLBDTBNQd2eeYWI",
     "admin_ids": [
         5892870427,
-        1488282589
+        1488282589,
+        6315225351
     ],
     "notify_user_id": -1002213862488,
     "proxy": "62.109.29.75:17450:modeler_7aCcgA:EphR4X26GQS0",
@@ -31,7 +33,9 @@
         "bio": false,
         "chatlists": false,
         "self_channel": false,
-        "disable_notify": false
+        "disable_notify": false,
+        "privacy_settings": true,
+        "auto_join_ft": true
     },
     "to_delete": {
         "previous_avatars": false,

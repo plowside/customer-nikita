@@ -20,6 +20,7 @@ t = {
 	'path_surnames':	'Фамилии',
 	'path_bio':			'Био',
 	'path_chatlists':	'Чатлисты',
+	'path_auto_join':	'Каналы Автовхода',
 	'bot_token':		'Токен бота',
 	'notify_user_id':	'ID для уведомлений',
 	'admin_ids':		'ID админов',
@@ -60,6 +61,8 @@ t = {
 	'bio':				'Поле "О себе"',
 	'chatlists':		'Чатлисты',
 	'disable_notify':	'Выключить уведомления',
+	'auto_join_ft':		'Автовступление в каналы из .txt',
+	'privacy_settings':	'Настройки конфиденциальности',
 	'previous_avatars':	'Предыдущие аватарки',
 
 	'title':			'Название',
@@ -109,7 +112,7 @@ def kb_sup_menu(q: str = None):
 			['path_sessions', 'path_sessions_spamblock'],
 			['path_avatars', 'path_channels_avatars'],
 			['path_names', 'path_surnames', 'path_bio'],
-			['path_chatlists'],
+			['path_chatlists', 'path_auto_join'],
 			['proxy', 'bot_token'],
 			['admin_ids', 'notify_user_id']
 		]
@@ -137,7 +140,7 @@ def kb_sup_menu(q: str = None):
 			[ikb(x[0], data=x[1] if ':' in x[1] else f'utils:change:{q}:{x[1]}') for x in z.items()] for z in s
 		])
 	
-	elif q in ['path_names', 'path_surnames', 'path_bio', 'path_chatlists']:
+	elif q in ['path_names', 'path_surnames', 'path_bio', 'path_chatlists', 'path_auto_join']:
 		s = [
 			{'✏️ Добавить': 'add', '🗑 Очистить файл': 'delete'},
 			{'🚀 Получить файл': 'get'},
@@ -185,7 +188,7 @@ def kb_cfg_menu(sub_menu: str = None, q: str = None):
 		return ikb_construct(*[], back_button=ikb('↪ Назад', data=f'utils:cfg_menu:{sub_menu}'))
 
 
-	elif sub_menu in ['channels|dm', 'stories', 'invite_to', 'self_channel'] and q in ['generate_text', 'openai_api_key', 'gpt_dialog_story', 'gpt_not_working_answer_variants', 'time_before_message', 'default_message', 'spam_channels', 'parse_chats', 'enable_likes', 'parse_invites', 'parse_chats', 'name_surname', 'bio', 'chatlists', 'disable_notify', 'previous_avatars', 'title', 'about', 'path_to_folder', 'username', 'length', 'symbols', 'forward_from_username', 'forward_from_message_id']:
+	elif sub_menu in ['channels|dm', 'stories', 'invite_to', 'self_channel'] and q in ['generate_text', 'openai_api_key', 'gpt_dialog_story', 'gpt_not_working_answer_variants', 'time_before_message', 'default_message', 'spam_channels', 'parse_chats', 'enable_likes', 'parse_invites', 'parse_chats', 'name_surname', 'bio', 'chatlists', 'disable_notify', 'auto_join_ft', 'privacy_settings', 'previous_avatars', 'title', 'about', 'path_to_folder', 'username', 'length', 'symbols', 'forward_from_username', 'forward_from_message_id']:
 		s = [
 			{'✏️ Изменить': 'edit'}
 		]
@@ -319,7 +322,7 @@ async def handler_utils(call: CallbackQuery, state: FSMContext):
 		q = cd[3]
 
 		if q == 'add':
-			msg = await call.message.edit_text(f"<b>Отправьте {'текст' if sub_menu in ['path_names', 'path_surnames', 'path_bio', 'path_chatlists'] else 'файл' if sub_menu in ['path_sessions'] else 'фото'}</b>", reply_markup=kb_sup_menu('bback'))
+			msg = await call.message.edit_text(f"<b>Отправьте {'текст' if sub_menu in ['path_names', 'path_surnames', 'path_bio', 'path_chatlists', 'path_auto_join'] else 'файл' if sub_menu in ['path_sessions'] else 'фото'}</b>", reply_markup=kb_sup_menu('bback'))
 			await state.set_state(states.change_smth)
 			await state.update_data(sub_menu=sub_menu, msg=msg)
 
@@ -340,7 +343,7 @@ async def handler_utils(call: CallbackQuery, state: FSMContext):
 
 				await call.answer('🗑 Папка очищена' if v == len(files) else f'🗑 Удалено {v} из {len(files)}', show_alert=True)
 				update_b()
-			elif sub_menu in ['path_names', 'path_surnames', 'path_bio', 'path_chatlists']:
+			elif sub_menu in ['path_names', 'path_surnames', 'path_bio', 'path_chatlists', 'path_auto_join']:
 				await aiofiles.open(f"{_data_dict[sub_menu]}", 'w', encoding='utf-8')
 				await call.answer('🗑 Файл очищен', show_alert=True)
 				update_b()
@@ -353,7 +356,7 @@ async def handler_utils(call: CallbackQuery, state: FSMContext):
 				await state.update_data(sub_menu=sub_menu, msg=msg)
 
 		elif q == 'get':
-			if sub_menu in ['path_names', 'path_surnames', 'path_bio', 'path_chatlists']:
+			if sub_menu in ['path_names', 'path_surnames', 'path_bio', 'path_chatlists', 'path_auto_join']:
 				try:
 					await call.message.answer_document(FSInputFile(_data_dict[sub_menu]), reply_markup=kb_delete())
 					await call.answer()
@@ -368,7 +371,7 @@ async def handler_utils(call: CallbackQuery, state: FSMContext):
 		sub_menu = cd[2]
 		q = cd[-1] if len(cd) > 4 else cd[3]
 
-		if q.split('$')[0] in ['Каналы', 'Чаты', 'Личные сообщения', 'avatar', 'name_surname', 'bio', 'self_channel', 'disable_notify', 'previous_avatars', 'chatlists', 'invite_to', 'channels', 'stories', 'dm', 'generate_text', 'enable_likes', 'forward_enabled', 'notify', 'advanced_check', 'replace_session']:
+		if q.split('$')[0] in ['Каналы', 'Чаты', 'Личные сообщения', 'avatar', 'name_surname', 'bio', 'self_channel', 'disable_notify', 'auto_join_ft', 'privacy_settings', 'previous_avatars', 'chatlists', 'invite_to', 'channels', 'stories', 'dm', 'generate_text', 'enable_likes', 'forward_enabled', 'notify', 'advanced_check', 'replace_session']:
 			v = q.split('$')[0]
 			z = json.loads((await (await aiofiles.open(f"config.json", 'r', encoding='utf-8')).read()))
 			_data_dict[sub_menu][v] = not _data_dict[sub_menu][v]
@@ -382,12 +385,12 @@ async def handler_utils(call: CallbackQuery, state: FSMContext):
 
 		elif q == 'edit':
 			last_q = cd[3]
-			if last_q in ['generate_text', 'openai_api_key', 'gpt_dialog_story', 'gpt_not_working_answer_variants', 'time_before_message', 'default_message', 'spam_channels', 'parse_chats', 'enable_likes', 'parse_invites', 'parse_chats', 'name_surname', 'bio', 'chatlists', 'disable_notify', 'previous_avatars', 'title', 'about', 'enabled', 'path_to_folder', 'username', 'length', 'symbols', 'message', 'text', 'forward_from_username', 'forward_from_message_id']:
+			if last_q in ['generate_text', 'openai_api_key', 'gpt_dialog_story', 'gpt_not_working_answer_variants', 'time_before_message', 'default_message', 'spam_channels', 'parse_chats', 'enable_likes', 'parse_invites', 'parse_chats', 'name_surname', 'bio', 'chatlists', 'disable_notify', 'auto_join_ft', 'privacy_settings', 'previous_avatars', 'title', 'about', 'enabled', 'path_to_folder', 'username', 'length', 'symbols', 'message', 'text', 'forward_from_username', 'forward_from_message_id']:
 				msg = await call.message.edit_text(f'<b>✏️ Введите новые данные для <i>{t.get(last_q, last_q)}</i> в <i>{t.get(sub_menu, sub_menu)}</i></b>', reply_markup=kb_cfg_menu(sub_menu=sub_menu, q='bback'))
 				await state.set_state(states.change_smth_)
 				await state.update_data(sub_menu=sub_menu, q=last_q, msg=msg)
 
-		elif q in ['generate_text', 'openai_api_key', 'gpt_dialog_story', 'gpt_not_working_answer_variants', 'time_before_message', 'default_message', 'spam_channels', 'parse_chats', 'enable_likes', 'parse_invites', 'parse_chats', 'name_surname', 'bio', 'chatlists', 'disable_notify', 'previous_avatars', 'title', 'about', 'enabled', 'path_to_folder', 'username', 'length', 'symbols', 'message', 'text', 'forward_from_username', 'forward_from_message_id']:
+		elif q in ['generate_text', 'openai_api_key', 'gpt_dialog_story', 'gpt_not_working_answer_variants', 'time_before_message', 'default_message', 'spam_channels', 'parse_chats', 'enable_likes', 'parse_invites', 'parse_chats', 'name_surname', 'bio', 'chatlists', 'disable_notify', 'auto_join_ft', 'privacy_settings', 'previous_avatars', 'title', 'about', 'enabled', 'path_to_folder', 'username', 'length', 'symbols', 'message', 'text', 'forward_from_username', 'forward_from_message_id']:
 			z = f'\nТекущее значение: <code>{_data_dict[sub_menu][q]}</code>'
 			msg = await call.message.edit_text(f'<b>⚙️ Выберите действие для <i>{t.get(q, q)}</i> в <i>{t.get(sub_menu, sub_menu)}</i>{z}</b>', reply_markup=kb_cfg_menu(sub_menu=sub_menu, q=q))
 
@@ -409,7 +412,7 @@ async def states_change_smth(message: Message, state: FSMContext):
 	state_data = await state.get_data()
 	await delmsg(state_data['msg'], message)
 
-	if state_data['sub_menu'] in ['path_names', 'path_surnames', 'path_bio', 'path_chatlists']:
+	if state_data['sub_menu'] in ['path_names', 'path_surnames', 'path_bio', 'path_chatlists', 'path_auto_join']:
 		z = (await (await aiofiles.open(f"{_data_dict[state_data['sub_menu']]}", 'r', encoding='utf-8')).readlines())
 		e = '\n' if len(z) > 0 and z[-1] == '' else ''
 		async with aiofiles.open(f"{_data_dict[state_data['sub_menu']]}", 'a', encoding='utf-8') as f1:
